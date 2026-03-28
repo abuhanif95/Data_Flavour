@@ -106,7 +106,7 @@ export default function AboutSection() {
                       className={`w-8 h-8 rounded-full flex items-center justify-center text-gray-400 border border-gray-200 bg-gray-50 transition-all duration-200 hover:scale-110 ${hover}`}>
                       <span className="text-sm">{icon}</span>
                     </a >
-                  ))}
+                  ))}        
                 </div>
 
                 {/* View Details button */}
