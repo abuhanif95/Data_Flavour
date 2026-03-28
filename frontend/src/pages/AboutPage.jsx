@@ -5,7 +5,7 @@ function AboutPage({ isDarkMode }) {
     <div
       className={`min-h-screen transition-colors ${
         isDarkMode
-          ? "bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900"
+          ? "bg-gradient-to-b from-black via-slate-950 to-black"
           : "bg-gradient-to-b from-slate-50 via-slate-100 to-slate-50"
       }`}
     >

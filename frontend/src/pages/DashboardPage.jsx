@@ -5,7 +5,7 @@ function DashboardPage({ isDarkMode }) {
     <div
       className={`min-h-screen transition-colors ${
         isDarkMode
-          ? "bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900"
+          ? "bg-gradient-to-b from-black via-slate-950 to-black"
           : "bg-gradient-to-b from-slate-50 via-slate-100 to-slate-50"
       }`}
     >
@@ -14,7 +14,7 @@ function DashboardPage({ isDarkMode }) {
         <section
           className={`rounded-lg p-8 mb-8 border transition-colors ${
             isDarkMode
-              ? "border-slate-700 bg-slate-800/50"
+              ? "border-slate-800 bg-black/50"
               : "border-slate-200 bg-white"
           } shadow-lg`}
         >
@@ -46,7 +46,7 @@ function DashboardPage({ isDarkMode }) {
               key={idx}
               className={`rounded-lg p-6 border transition-all duration-300 ${
                 isDarkMode
-                  ? "border-slate-700 bg-slate-800/50 hover:border-cyan-500"
+                  ? "border-slate-800 bg-black/50 hover:border-cyan-500"
                   : "border-slate-200 bg-white hover:border-cyan-400"
               } shadow-md hover:shadow-lg text-center`}
             >
@@ -97,7 +97,7 @@ function DashboardPage({ isDarkMode }) {
                   key={idx}
                   className={`p-4 rounded-lg flex justify-between items-center border ${
                     isDarkMode
-                      ? "border-slate-700 bg-slate-900/30"
+                      ? "border-slate-800 bg-slate-950/50"
                       : "border-slate-200 bg-slate-50"
                   }`}
                 >
@@ -171,7 +171,7 @@ function DashboardPage({ isDarkMode }) {
                   </div>
                   <div
                     className={`w-full h-2 rounded-full overflow-hidden ${
-                      isDarkMode ? "bg-slate-700" : "bg-slate-300"
+                      isDarkMode ? "bg-slate-800" : "bg-slate-300"
                     }`}
                   >
                     <div
@@ -210,7 +210,7 @@ function DashboardPage({ isDarkMode }) {
                   key={idx}
                   className={`p-4 rounded-lg border ${
                     isDarkMode
-                      ? "border-slate-700 bg-slate-900/30 text-slate-300"
+                      ? "border-slate-800 bg-slate-950/30 text-slate-300"
                       : "border-slate-200 bg-slate-50 text-slate-700"
                   }`}
                 >

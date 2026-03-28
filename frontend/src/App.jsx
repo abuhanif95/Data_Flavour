@@ -91,9 +91,11 @@ function DataTable({ columns, rows, isDarkMode }) {
       }`}
     >
       <div className="inline-block min-w-full">
-        <table className={`w-full text-left text-sm ${
-          isDarkMode ? "text-slate-100" : "text-slate-900"
-        }`}>
+        <table
+          className={`w-full text-left text-sm ${
+            isDarkMode ? "text-slate-100" : "text-slate-900"
+          }`}
+        >
           <thead
             className={`sticky top-0 ${
               isDarkMode
@@ -114,9 +116,7 @@ function DataTable({ columns, rows, isDarkMode }) {
                     }
                   }}
                   className={`cursor-pointer select-none px-4 py-3 font-semibold transition ${
-                    isDarkMode
-                      ? "hover:bg-white/20"
-                      : "hover:bg-slate-300/30"
+                    isDarkMode ? "hover:bg-white/20" : "hover:bg-slate-300/30"
                   }`}
                 >
                   {column}
@@ -269,7 +269,7 @@ function ChatbotContent({ isDarkMode }) {
     <div
       className={`min-h-screen transition-colors ${
         isDarkMode
-          ? "bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900"
+          ? "bg-gradient-to-b from-black via-slate-950 to-black"
           : "bg-gradient-to-b from-slate-50 via-slate-100 to-slate-50"
       }`}
     >
@@ -278,7 +278,7 @@ function ChatbotContent({ isDarkMode }) {
         <section
           className={`border-b transition-colors ${
             isDarkMode
-              ? "border-white/10 bg-gradient-to-b from-slate-800 to-slate-900"
+              ? "border-white/10 bg-gradient-to-b from-black to-slate-950"
               : "border-slate-200 bg-gradient-to-b from-slate-100 to-slate-50"
           } px-4 py-8 md:px-8`}
         >
@@ -290,9 +290,7 @@ function ChatbotContent({ isDarkMode }) {
             >
               Query Yelp with Natural Language
             </h2>
-            <p
-              className={isDarkMode ? "text-slate-300" : "text-slate-700"}
-            >
+            <p className={isDarkMode ? "text-slate-300" : "text-slate-700"}>
               Ask anything about restaurants, reviews, users, and check-ins.
               Watch as AI converts your question to SQL instantly.
             </p>
@@ -303,7 +301,7 @@ function ChatbotContent({ isDarkMode }) {
         <main
           className={`flex flex-1 flex-col px-4 py-6 md:px-8 transition-colors ${
             isDarkMode
-              ? "bg-gradient-to-b from-slate-800 via-slate-900 to-slate-900"
+              ? "bg-gradient-to-b from-black via-slate-950 to-black"
               : "bg-gradient-to-b from-slate-100 via-slate-50 to-slate-50"
           }`}
         >
@@ -346,7 +344,10 @@ function ChatbotContent({ isDarkMode }) {
                         >
                           Generated SQL
                         </p>
-                        <CopyButton text={message.sql} isDarkMode={isDarkMode} />
+                        <CopyButton
+                          text={message.sql}
+                          isDarkMode={isDarkMode}
+                        />
                       </div>
                       <pre
                         className={`overflow-x-auto text-xs md:text-sm ${
@@ -462,9 +463,7 @@ function ChatbotContent({ isDarkMode }) {
                   placeholder="Ask me about restaurants, reviews, cities, or users..."
                   disabled={loading}
                   className={`flex-1 bg-transparent px-4 py-3 outline-none placeholder:text-slate-500 disabled:opacity-50 ${
-                    isDarkMode
-                      ? "text-slate-100"
-                      : "text-slate-900"
+                    isDarkMode ? "text-slate-100" : "text-slate-900"
                   }`}
                 />
                 <button
@@ -518,7 +517,9 @@ function App() {
   const renderPage = () => {
     switch (currentPage) {
       case "home":
-        return <HomePage isDarkMode={isDarkMode} setCurrentPage={setCurrentPage} />;
+        return (
+          <HomePage isDarkMode={isDarkMode} setCurrentPage={setCurrentPage} />
+        );
       case "dashboard":
         return <DashboardPage isDarkMode={isDarkMode} />;
       case "chatbot":
