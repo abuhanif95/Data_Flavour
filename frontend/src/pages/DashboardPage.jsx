@@ -1,8 +1,33 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Legend,
+  Line,
+  LineChart,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Scatter,
+  ScatterChart,
+  Tooltip,
+  XAxis,
+  YAxis,
+  ZAxis,
+} from "recharts";
 
 function DashboardPage({ isDarkMode }) {
   const [selectedModule, setSelectedModule] = useState(null);
   const [selectedAnalysisName, setSelectedAnalysisName] = useState(null);
+  const [selectedQuestionIndex, setSelectedQuestionIndex] = useState(0);
+  const [selectedChartType, setSelectedChartType] = useState("bar");
+  const [remoteChartData, setRemoteChartData] = useState([]);
+  const [isChartLoading, setIsChartLoading] = useState(false);
+  const [chartError, setChartError] = useState("");
 
   const analysisModules = {
     dataAnalysis: {
@@ -135,6 +160,137 @@ function DashboardPage({ isDarkMode }) {
     ],
   };
 
+  const chartTabs = ["bar", "line", "area", "pie", "scatter"];
+  const pieColors = ["#2563eb", "#3b82f6", "#06b6d4", "#8b5cf6", "#14b8a6"];
+
+  const moduleDatasetMap = {
+    "User Analysis": "user",
+    "Business Analysis": "business",
+    "Rating Analysis": "rating",
+    "Review Analysis": "review",
+    "Check-in Analysis": "checkin",
+    "Comprehensive Analysis": "comprehensive",
+    "The Weather-Mood Hypothesis": "comprehensive",
+    "The Cursed Storefronts and Multi-Dimensional Attribution": "comprehensive",
+    "The Review Manipulation Syndicate": "comprehensive",
+    "The Open-World Data Safari": "comprehensive",
+  };
+
+  const selectedService = selectedModule
+    ? analysisModules[
+        selectedModule === "dataAnalysis" ? "dataAnalysis" : "dataEnrichment"
+      ]
+    : null;
+
+  const activeModule =
+    selectedService && selectedAnalysisName
+      ? selectedService.modules.find((m) => m.name === selectedAnalysisName)
+      : null;
+
+  const activeQuestions = activeModule
+    ? moduleQuestions[activeModule.name] || []
+    : [];
+
+  const safeQuestionIndex =
+    selectedQuestionIndex >= 0 && selectedQuestionIndex < activeQuestions.length
+      ? selectedQuestionIndex
+      : -1;
+  const selectedQuestion =
+    safeQuestionIndex >= 0 ? activeQuestions[safeQuestionIndex] : "";
+
+  const selectedDataset = activeModule
+    ? moduleDatasetMap[activeModule.name] || "comprehensive"
+    : "comprehensive";
+
+  const fallbackChartData = useMemo(() => {
+    const seed =
+      selectedQuestion
+        .split("")
+        .reduce((acc, ch) => acc + ch.charCodeAt(0), 0) || 1234;
+
+    return Array.from({ length: 12 }).map((_, index) => {
+      const month = index + 1;
+      const value =
+        80 +
+        Math.floor(
+          (Math.sin((seed % 31) * 0.11 + month * 0.55) + 1) * 85 +
+            ((seed + month * 17) % 35),
+        );
+
+      return {
+        label: `M${month}`,
+        value,
+        secondary: Math.max(
+          15,
+          Math.floor(value * (0.55 + ((seed + month) % 25) / 100)),
+        ),
+        z: 40 + ((seed + month * 13) % 160),
+      };
+    });
+  }, [selectedQuestion]);
+
+  useEffect(() => {
+    if (!selectedQuestion) {
+      setRemoteChartData([]);
+      setChartError("");
+      setIsChartLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+
+    async function fetchChartData() {
+      try {
+        setIsChartLoading(true);
+        setChartError("");
+
+        const response = await fetch(
+          `/api/analysis/chart?dataset=${encodeURIComponent(selectedDataset)}`,
+          { signal: controller.signal },
+        );
+
+        if (!response.ok) {
+          const payload = await response.json().catch(() => ({}));
+          throw new Error(payload.error || "Unable to fetch chart data.");
+        }
+
+        const payload = await response.json();
+        const points = Array.isArray(payload.chartData)
+          ? payload.chartData
+          : [];
+
+        setRemoteChartData(points);
+      } catch (error) {
+        if (error.name === "AbortError") {
+          return;
+        }
+        setRemoteChartData([]);
+        setChartError(error.message || "Failed to load chart data.");
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsChartLoading(false);
+        }
+      }
+    }
+
+    fetchChartData();
+
+    return () => controller.abort();
+  }, [selectedDataset, selectedQuestion]);
+
+  const chartData = remoteChartData.length
+    ? remoteChartData
+    : fallbackChartData;
+
+  const pieData = useMemo(
+    () =>
+      chartData.slice(0, 5).map((item, idx) => ({
+        name: `Segment ${idx + 1}`,
+        value: item.value,
+      })),
+    [chartData],
+  );
+
   const ServiceCard = ({ service, type }) => (
     <div
       className={`group rounded-lg overflow-hidden border transform-gpu transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl ${
@@ -176,6 +332,8 @@ function DashboardPage({ isDarkMode }) {
           onClick={() => {
             setSelectedModule(type);
             setSelectedAnalysisName(analysisModules[type].modules[0].name);
+            setSelectedQuestionIndex(0);
+            setSelectedChartType("bar");
           }}
           className="px-6 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold rounded-lg hover:shadow-lg hover:shadow-cyan-500/50 transition-all duration-300"
         >
@@ -187,16 +345,7 @@ function DashboardPage({ isDarkMode }) {
 
   // Show module details view when a module is selected
   if (selectedModule) {
-    const service =
-      analysisModules[
-        selectedModule === "dataAnalysis" ? "dataAnalysis" : "dataEnrichment"
-      ];
-    const activeModule = selectedAnalysisName
-      ? service.modules.find((m) => m.name === selectedAnalysisName)
-      : null;
-    const activeQuestions = activeModule
-      ? moduleQuestions[activeModule.name] || []
-      : [];
+    const service = selectedService;
 
     return (
       <div
@@ -229,7 +378,11 @@ function DashboardPage({ isDarkMode }) {
                   return (
                     <button
                       key={module.id}
-                      onClick={() => setSelectedAnalysisName(module.name)}
+                      onClick={() => {
+                        setSelectedAnalysisName(module.name);
+                        setSelectedQuestionIndex(0);
+                        setSelectedChartType("bar");
+                      }}
                       className={`w-full flex items-center gap-3 rounded-lg px-3 py-3 text-left transform-gpu transition-all duration-300 hover:-translate-y-0.5 ${
                         isActive
                           ? isDarkMode
@@ -262,35 +415,247 @@ function DashboardPage({ isDarkMode }) {
             </div>
 
             {/* Right Div: All Questions */}
-            <div className="min-w-0 flex-1 p-4">
-              <div className="max-h-[82vh] space-y-3 overflow-y-auto pr-1">
-                {activeQuestions.map((question, index) => (
-                  <div
-                    key={question}
-                    className={`min-h-[106px] rounded-lg border p-4 flex items-start gap-4 transform-gpu transition-all duration-300 hover:-translate-y-1 hover:shadow-xl ${
-                      isDarkMode
-                        ? "border-slate-700 bg-gradient-to-r from-slate-800/70 to-slate-900/80 hover:border-cyan-500/40 hover:shadow-cyan-500/20"
-                        : "border-slate-200 bg-gradient-to-r from-white to-slate-50 hover:border-blue-300 hover:shadow-blue-300/60"
-                    }`}
-                  >
+            <div className="min-w-0 flex-1 p-2 sm:p-3">
+              <div
+                className={`h-[82vh] min-h-[560px] space-y-3 overflow-y-auto rounded-lg border p-3 ${
+                  isDarkMode
+                    ? "border-slate-700 bg-slate-900/70"
+                    : "border-slate-200 bg-white"
+                }`}
+              >
+                {activeQuestions.map((question, index) => {
+                  const isExpanded = index === safeQuestionIndex;
+
+                  return (
                     <div
-                      className={`h-12 w-12 rounded-xl flex items-center justify-center text-xl ${
-                        isDarkMode
-                          ? "bg-blue-600/20 text-blue-300"
-                          : "bg-blue-100 text-blue-700"
+                      key={question}
+                      className={`overflow-hidden rounded-lg border transition-all ${
+                        isExpanded
+                          ? isDarkMode
+                            ? "border-blue-500/50 bg-slate-900"
+                            : "border-blue-300 bg-slate-50"
+                          : isDarkMode
+                            ? "border-slate-700 bg-slate-900/60"
+                            : "border-slate-200 bg-white"
                       }`}
                     >
-                      {activeModule?.icon || "📊"}
+                      <button
+                        onClick={() => {
+                          setSelectedQuestionIndex((prev) =>
+                            prev === index ? -1 : index,
+                          );
+                          if (selectedQuestionIndex !== index) {
+                            setSelectedChartType("bar");
+                          }
+                        }}
+                        className={`flex w-full items-center justify-between gap-3 px-4 py-4 text-left transition-colors ${
+                          isDarkMode
+                            ? "hover:bg-slate-800/60"
+                            : "hover:bg-slate-100"
+                        }`}
+                      >
+                        <div className="flex min-w-0 items-center gap-3">
+                          <span
+                            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-xl ${
+                              isDarkMode
+                                ? "bg-blue-600/20 text-blue-300"
+                                : "bg-blue-100 text-blue-700"
+                            }`}
+                          >
+                            {activeModule?.icon || "📊"}
+                          </span>
+                          <p
+                            className={`truncate text-lg font-semibold ${
+                              isDarkMode ? "text-slate-100" : "text-slate-900"
+                            }`}
+                          >
+                            {`${index + 1}. ${question}`}
+                          </p>
+                        </div>
+
+                        <span
+                          className={`text-2xl leading-none ${
+                            isDarkMode ? "text-slate-400" : "text-slate-500"
+                          }`}
+                          aria-hidden
+                        >
+                          {isExpanded ? "^" : "v"}
+                        </span>
+                      </button>
+
+                      {isExpanded && (
+                        <div
+                          className={`border-t px-4 pb-4 pt-3 ${
+                            isDarkMode ? "border-slate-700" : "border-slate-200"
+                          }`}
+                        >
+                          <div className="mb-3 flex flex-wrap items-center gap-2">
+                            {isChartLoading && (
+                              <span
+                                className={`rounded-md px-2 py-1 text-xs font-medium ${
+                                  isDarkMode
+                                    ? "bg-cyan-500/20 text-cyan-300"
+                                    : "bg-cyan-100 text-cyan-700"
+                                }`}
+                              >
+                                Loading data from Ubuntu...
+                              </span>
+                            )}
+                            {chartError && (
+                              <span
+                                className={`rounded-md px-2 py-1 text-xs font-medium ${
+                                  isDarkMode
+                                    ? "bg-amber-500/20 text-amber-300"
+                                    : "bg-amber-100 text-amber-700"
+                                }`}
+                              >
+                                {`${chartError} (showing fallback preview data)`}
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="mb-3 flex flex-wrap gap-2">
+                            {chartTabs.map((tab) => {
+                              const isActiveTab = selectedChartType === tab;
+                              return (
+                                <button
+                                  key={tab}
+                                  onClick={() => setSelectedChartType(tab)}
+                                  className={`rounded-lg px-4 py-2 text-sm font-semibold capitalize transition-all ${
+                                    isActiveTab
+                                      ? "bg-blue-600 text-white"
+                                      : isDarkMode
+                                        ? "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                                        : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                                  }`}
+                                >
+                                  {tab}
+                                </button>
+                              );
+                            })}
+                          </div>
+
+                          <div
+                            className={`h-[460px] rounded-lg p-3 ${
+                              isDarkMode ? "bg-slate-800/90" : "bg-slate-50"
+                            }`}
+                          >
+                            <ResponsiveContainer width="100%" height="100%">
+                              {selectedChartType === "bar" ? (
+                                <BarChart data={chartData}>
+                                  <CartesianGrid
+                                    strokeDasharray="3 3"
+                                    stroke={isDarkMode ? "#334155" : "#cbd5e1"}
+                                  />
+                                  <XAxis
+                                    dataKey="label"
+                                    stroke={isDarkMode ? "#cbd5e1" : "#475569"}
+                                  />
+                                  <YAxis
+                                    stroke={isDarkMode ? "#cbd5e1" : "#475569"}
+                                  />
+                                  <Tooltip />
+                                  <Bar
+                                    dataKey="value"
+                                    fill="#3b82f6"
+                                    radius={[6, 6, 0, 0]}
+                                  />
+                                </BarChart>
+                              ) : selectedChartType === "line" ? (
+                                <LineChart data={chartData}>
+                                  <CartesianGrid
+                                    strokeDasharray="3 3"
+                                    stroke={isDarkMode ? "#334155" : "#cbd5e1"}
+                                  />
+                                  <XAxis
+                                    dataKey="label"
+                                    stroke={isDarkMode ? "#cbd5e1" : "#475569"}
+                                  />
+                                  <YAxis
+                                    stroke={isDarkMode ? "#cbd5e1" : "#475569"}
+                                  />
+                                  <Tooltip />
+                                  <Line
+                                    type="monotone"
+                                    dataKey="value"
+                                    stroke="#06b6d4"
+                                    strokeWidth={3}
+                                    dot={false}
+                                  />
+                                </LineChart>
+                              ) : selectedChartType === "area" ? (
+                                <AreaChart data={chartData}>
+                                  <CartesianGrid
+                                    strokeDasharray="3 3"
+                                    stroke={isDarkMode ? "#334155" : "#cbd5e1"}
+                                  />
+                                  <XAxis
+                                    dataKey="label"
+                                    stroke={isDarkMode ? "#cbd5e1" : "#475569"}
+                                  />
+                                  <YAxis
+                                    stroke={isDarkMode ? "#cbd5e1" : "#475569"}
+                                  />
+                                  <Tooltip />
+                                  <Area
+                                    type="monotone"
+                                    dataKey="value"
+                                    stroke="#2563eb"
+                                    fill="#60a5fa"
+                                    fillOpacity={0.5}
+                                  />
+                                </AreaChart>
+                              ) : selectedChartType === "pie" ? (
+                                <PieChart>
+                                  <Tooltip />
+                                  <Legend />
+                                  <Pie
+                                    data={pieData}
+                                    dataKey="value"
+                                    nameKey="name"
+                                    cx="50%"
+                                    cy="50%"
+                                    outerRadius={130}
+                                    label
+                                  >
+                                    {pieData.map((entry, idx) => (
+                                      <Cell
+                                        key={entry.name}
+                                        fill={pieColors[idx % pieColors.length]}
+                                      />
+                                    ))}
+                                  </Pie>
+                                </PieChart>
+                              ) : (
+                                <ScatterChart>
+                                  <CartesianGrid
+                                    strokeDasharray="3 3"
+                                    stroke={isDarkMode ? "#334155" : "#cbd5e1"}
+                                  />
+                                  <XAxis
+                                    dataKey="value"
+                                    name="Value"
+                                    stroke={isDarkMode ? "#cbd5e1" : "#475569"}
+                                  />
+                                  <YAxis
+                                    dataKey="secondary"
+                                    name="Secondary"
+                                    stroke={isDarkMode ? "#cbd5e1" : "#475569"}
+                                  />
+                                  <ZAxis dataKey="z" range={[40, 260]} />
+                                  <Tooltip
+                                    cursor={{ strokeDasharray: "3 3" }}
+                                  />
+                                  <Scatter data={chartData} fill="#8b5cf6" />
+                                </ScatterChart>
+                              )}
+                            </ResponsiveContainer>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    <p
-                      className={`text-lg font-semibold ${
-                        isDarkMode ? "text-slate-100" : "text-slate-900"
-                      }`}
-                    >
-                      {`${index + 1}. ${question}`}
-                    </p>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>

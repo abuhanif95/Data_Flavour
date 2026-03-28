@@ -4,13 +4,26 @@ import dotenv from "dotenv";
 import Database from "better-sqlite3";
 import OpenAI from "openai";
 import { z } from "zod";
+import { exec as execCb } from "node:child_process";
+import { promisify } from "node:util";
 
 dotenv.config();
 
 const app = express();
 const API_PORT = process.env.API_PORT || 8000;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
+const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || "";
 const DB_PATH = process.env.DB_PATH || "./yelp.db";
+const LLM_API_KEY = process.env.LLM_API_KEY || DEEPSEEK_API_KEY || OPENAI_API_KEY;
+const LLM_BASE_URL = process.env.LLM_BASE_URL || "https://api.deepseek.com/v1";
+const LLM_MODEL = process.env.LLM_MODEL || "deepseek-chat";
+const HDFS_NAMENODE_URL =
+  process.env.HDFS_NAMENODE_URL || "http://localhost:9870";
+const HDFS_USER = process.env.HDFS_USER || "hanif";
+const HDFS_BASE_PATH = process.env.HDFS_BASE_PATH || "/user/hanif/yelp";
+const HDFS_CLI_ENABLED =
+  String(process.env.HDFS_CLI_ENABLED || "true").toLowerCase() === "true";
+const exec = promisify(execCb);
 
 app.use(cors());
 app.use(express.json());
@@ -102,7 +115,7 @@ Return ONLY a valid SQLite SELECT query with no markdown or explanation.
  * Generate SQL from user question using OpenAI or return mock query for demo
  */
 async function generateSQL(question) {
-  if (!OPENAI_API_KEY) {
+  if (!LLM_API_KEY) {
     // Mock SQL for demo when no API key is set
     if (
       question.toLowerCase().includes("top") &&
@@ -131,9 +144,12 @@ async function generateSQL(question) {
     return `SELECT * FROM businesses LIMIT 5;`;
   }
 
-  const client = new OpenAI({ apiKey: OPENAI_API_KEY });
+  const client = new OpenAI({
+    apiKey: LLM_API_KEY,
+    ...(LLM_BASE_URL ? { baseURL: LLM_BASE_URL } : {}),
+  });
   const response = await client.chat.completions.create({
-    model: "gpt-4-turbo",
+    model: LLM_MODEL,
     messages: [
       {
         role: "system",
@@ -231,6 +247,286 @@ function generateSummary(rows, columns, question) {
   return `${desc}Showing the first 20 rows in the table below.`;
 }
 
+function normalizeDataset(dataset) {
+  const normalized = (dataset || "")
+    .toLowerCase()
+    .replace(/\s+/g, "")
+    .replace(/[-_]/g, "");
+
+  const aliases = {
+    business: "business",
+    user: "user",
+    checkin: "checkin",
+    review: "review",
+    rating: "rating",
+    comprehensive: "comprehensive",
+    comprehensiveanalysis: "comprehensive",
+  };
+
+  return aliases[normalized] || null;
+}
+
+function encodeHdfsPath(pathValue) {
+  const trimmed = String(pathValue || "").replace(/^\/+/, "");
+  const encoded = trimmed
+    .split("/")
+    .filter(Boolean)
+    .map((segment) => encodeURIComponent(segment))
+    .join("/");
+  return `/${encoded}`;
+}
+
+function buildWebHdfsUrl(pathValue, op, extraParams = {}) {
+  const params = new URLSearchParams({
+    op,
+    "user.name": HDFS_USER,
+    ...extraParams,
+  });
+  return `${HDFS_NAMENODE_URL}/webhdfs/v1${encodeHdfsPath(pathValue)}?${params.toString()}`;
+}
+
+async function listHdfsStatus(pathValue) {
+  const response = await fetch(buildWebHdfsUrl(pathValue, "LISTSTATUS"));
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(
+      `LISTSTATUS failed for ${pathValue}: ${response.status} ${body}`,
+    );
+  }
+  const payload = await response.json();
+  return payload?.FileStatuses?.FileStatus || [];
+}
+
+async function openHdfsFile(pathValue) {
+  const response = await fetch(buildWebHdfsUrl(pathValue, "OPEN"));
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`OPEN failed for ${pathValue}: ${response.status} ${body}`);
+  }
+  return response.text();
+}
+
+function parsePrimitiveNumber(value) {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value !== "string") {
+    return null;
+  }
+  const cleaned = value.replace(/,/g, "").trim();
+  if (!cleaned) {
+    return null;
+  }
+  const parsed = Number(cleaned);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function parseDatasetText(rawText) {
+  const text = String(rawText || "").trim();
+  if (!text) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(text);
+    if (Array.isArray(parsed)) {
+      return parsed;
+    }
+    if (parsed && Array.isArray(parsed.rows)) {
+      return parsed.rows;
+    }
+    if (parsed && Array.isArray(parsed.data)) {
+      return parsed.data;
+    }
+  } catch {
+    // Continue to line-based parsing.
+  }
+
+  const lines = text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  if (!lines.length) {
+    return [];
+  }
+
+  const jsonLineRows = [];
+  let allJsonLines = true;
+  for (const line of lines) {
+    try {
+      const parsedLine = JSON.parse(line);
+      if (parsedLine && typeof parsedLine === "object") {
+        jsonLineRows.push(parsedLine);
+      }
+    } catch {
+      allJsonLines = false;
+      break;
+    }
+  }
+
+  if (allJsonLines && jsonLineRows.length) {
+    return jsonLineRows;
+  }
+
+  if (lines[0].includes(",")) {
+    const headers = lines[0].split(",").map((header) => header.trim());
+    return lines.slice(1).map((line) => {
+      const values = line.split(",");
+      const row = {};
+      headers.forEach((header, index) => {
+        row[header || `col_${index}`] = values[index]?.trim() ?? "";
+      });
+      return row;
+    });
+  }
+
+  return lines.map((line, index) => ({
+    label: `R${index + 1}`,
+    value: parsePrimitiveNumber(line) ?? index + 1,
+  }));
+}
+
+function detectLabel(row, idx) {
+  const preferredKeys = [
+    "date",
+    "month",
+    "year",
+    "period",
+    "city",
+    "state",
+    "name",
+    "category",
+    "label",
+  ];
+
+  for (const key of preferredKeys) {
+    if (
+      row[key] !== undefined &&
+      row[key] !== null &&
+      String(row[key]).trim()
+    ) {
+      return String(row[key]).trim();
+    }
+  }
+
+  const firstStringKey = Object.keys(row).find((key) => {
+    const value = row[key];
+    return typeof value === "string" && value.trim();
+  });
+
+  if (firstStringKey) {
+    return String(row[firstStringKey]).trim();
+  }
+
+  return `P${idx + 1}`;
+}
+
+function detectValue(row, fallback = 1) {
+  const preferredKeys = [
+    "value",
+    "count",
+    "total",
+    "review_count",
+    "checkin_count",
+    "frequency",
+    "stars",
+    "rating",
+    "avg_rating",
+  ];
+
+  for (const key of preferredKeys) {
+    const parsed = parsePrimitiveNumber(row[key]);
+    if (parsed !== null) {
+      return parsed;
+    }
+  }
+
+  for (const key of Object.keys(row)) {
+    const parsed = parsePrimitiveNumber(row[key]);
+    if (parsed !== null) {
+      return parsed;
+    }
+  }
+
+  return fallback;
+}
+
+function toChartData(rows) {
+  if (!rows.length) {
+    return [];
+  }
+
+  const points = rows.slice(0, 40).map((row, idx) => {
+    const label = detectLabel(row, idx);
+    const value = detectValue(row, idx + 1);
+    return {
+      label,
+      value,
+      secondary: Math.max(1, Math.round(value * 0.7)),
+      z: Math.max(30, Math.round(value * 1.2)),
+    };
+  });
+
+  return points;
+}
+
+async function loadDatasetRows(dataset) {
+  const datasetPath = `${HDFS_BASE_PATH}/${dataset}`;
+  try {
+    const statuses = await listHdfsStatus(datasetPath);
+    const files = statuses
+      .filter((entry) => entry.type === "FILE")
+      .filter((entry) =>
+        /^(part-|.*\.(json|jsonl|csv|txt))/.test(entry.pathSuffix),
+      )
+      .slice(0, 8);
+
+    if (!files.length) {
+      return [];
+    }
+
+    let rows = [];
+    for (const file of files) {
+      const filePath = `${datasetPath}/${file.pathSuffix}`;
+      const content = await openHdfsFile(filePath);
+      rows = rows.concat(parseDatasetText(content));
+    }
+
+    return rows;
+  } catch (webhdfsError) {
+    if (!HDFS_CLI_ENABLED) {
+      throw webhdfsError;
+    }
+
+    const escapedPath = datasetPath.replace(/"/g, '\\"');
+    const listCommand = `hdfs dfs -ls "${escapedPath}"`;
+    const { stdout } = await exec(listCommand, { timeout: 20000 });
+
+    const files = stdout
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => line.split(/\s+/).pop())
+      .filter((filePath) => filePath && !filePath.endsWith("/"))
+      .filter((filePath) => /^(.*\/)?(part-|.*\.(json|jsonl|csv|txt))/.test(filePath))
+      .slice(0, 8);
+
+    if (!files.length) {
+      return [];
+    }
+
+    let rows = [];
+    for (const filePath of files) {
+      const catCommand = `hdfs dfs -cat "${filePath.replace(/"/g, '\\"')}"`;
+      const { stdout: fileContent } = await exec(catCommand, { timeout: 30000 });
+      rows = rows.concat(parseDatasetText(fileContent));
+    }
+
+    return rows;
+  }
+}
+
 /**
  * Main chat endpoint: Natural language → SQL → Results
  */
@@ -291,6 +587,37 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
+app.get("/api/analysis/chart", async (req, res) => {
+  try {
+    const dataset = normalizeDataset(req.query.dataset);
+
+    if (!dataset) {
+      return res.status(400).json({
+        error:
+          "Invalid dataset. Use one of: business, user, checkin, review, rating, comprehensive.",
+      });
+    }
+
+    const rows = await loadDatasetRows(dataset);
+    const chartData = toChartData(rows);
+
+    return res.json({
+      dataset,
+      sourcePath: `${HDFS_BASE_PATH}/${dataset}`,
+      chartData,
+      points: chartData.length,
+      notes: chartData.length
+        ? ["Data loaded from Ubuntu HDFS path."]
+        : ["Dataset path reachable but no parseable rows found."],
+    });
+  } catch (error) {
+    console.error("❌ Analysis data API error:", error.message);
+    return res.status(500).json({
+      error: error.message || "Failed to load analysis data from HDFS.",
+    });
+  }
+});
+
 /**
  * Start server
  */
@@ -301,9 +628,12 @@ app.listen(API_PORT, () => {
   console.log("╚════════════════════════════════════════╝");
   console.log(`\n🚀 Server running on http://localhost:${API_PORT}`);
   console.log(`📊 API endpoint: http://localhost:${API_PORT}/api/chat`);
+  console.log(
+    `📈 Analysis endpoint: http://localhost:${API_PORT}/api/analysis/chart`,
+  );
   console.log(`💚 Health check: http://localhost:${API_PORT}/api/health`);
   console.log("");
-  console.log("ℹ️  Set OPENAI_API_KEY env var to enable AI SQL generation.");
+  console.log("ℹ️  Set LLM_API_KEY (or DEEPSEEK_API_KEY) to enable AI SQL generation.");
   console.log("ℹ️  Set DB_PATH env var to use a custom database.");
   console.log("");
 });
