@@ -14,7 +14,8 @@ const API_PORT = process.env.API_PORT || 8000;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || "";
 const DB_PATH = process.env.DB_PATH || "./yelp.db";
-const LLM_API_KEY = process.env.LLM_API_KEY || DEEPSEEK_API_KEY || OPENAI_API_KEY;
+const LLM_API_KEY =
+  process.env.LLM_API_KEY || DEEPSEEK_API_KEY || OPENAI_API_KEY;
 const LLM_BASE_URL = process.env.LLM_BASE_URL || "https://api.deepseek.com/v1";
 const LLM_MODEL = process.env.LLM_MODEL || "deepseek-chat";
 const HDFS_NAMENODE_URL =
@@ -286,7 +287,16 @@ function buildWebHdfsUrl(pathValue, op, extraParams = {}) {
 }
 
 async function listHdfsStatus(pathValue) {
-  const response = await fetch(buildWebHdfsUrl(pathValue, "LISTSTATUS"));
+  const listUrl = buildWebHdfsUrl(pathValue, "LISTSTATUS");
+  let response;
+  try {
+    response = await fetch(listUrl);
+  } catch (error) {
+    throw new Error(
+      `Unable to reach WebHDFS LISTSTATUS at ${listUrl}. ${error.message}`,
+    );
+  }
+
   if (!response.ok) {
     const body = await response.text();
     throw new Error(
@@ -298,7 +308,16 @@ async function listHdfsStatus(pathValue) {
 }
 
 async function openHdfsFile(pathValue) {
-  const response = await fetch(buildWebHdfsUrl(pathValue, "OPEN"));
+  const openUrl = buildWebHdfsUrl(pathValue, "OPEN");
+  let response;
+  try {
+    response = await fetch(openUrl);
+  } catch (error) {
+    throw new Error(
+      `Unable to OPEN file from WebHDFS ${openUrl}. ${error.message}`,
+    );
+  }
+
   if (!response.ok) {
     const body = await response.text();
     throw new Error(`OPEN failed for ${pathValue}: ${response.status} ${body}`);
@@ -471,6 +490,44 @@ function toChartData(rows) {
   return points;
 }
 
+function inferDatasetFromQuestion(question) {
+  const q = String(question || "").toLowerCase();
+  if (/\buser|elite|fans|yelping\b/.test(q)) {
+    return "user";
+  }
+  if (/\bbusiness|merchant|city|state|category\b/.test(q)) {
+    return "business";
+  }
+  if (/\bcheck\s*-?in|checkin\b/.test(q)) {
+    return "checkin";
+  }
+  if (/\breview|word|sentiment|bigrams?\b/.test(q)) {
+    return "review";
+  }
+  if (/\brating|stars?\b/.test(q)) {
+    return "rating";
+  }
+  return "comprehensive";
+}
+
+function toTabularRows(rows, limit = 200) {
+  return rows
+    .slice(0, limit)
+    .map((row) => (row && typeof row === "object" ? row : { value: row }));
+}
+
+async function execFirstSuccessful(commands, timeout = 20000) {
+  let lastError = null;
+  for (const command of commands) {
+    try {
+      return await exec(command, { timeout });
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError || new Error("No command succeeded.");
+}
+
 async function loadDatasetRows(dataset) {
   const datasetPath = `${HDFS_BASE_PATH}/${dataset}`;
   try {
@@ -500,8 +557,10 @@ async function loadDatasetRows(dataset) {
     }
 
     const escapedPath = datasetPath.replace(/"/g, '\\"');
-    const listCommand = `hdfs dfs -ls "${escapedPath}"`;
-    const { stdout } = await exec(listCommand, { timeout: 20000 });
+    const { stdout } = await execFirstSuccessful([
+      `hdfs dfs -ls "${escapedPath}"`,
+      `hadoop fs -ls "${escapedPath}"`,
+    ]);
 
     const files = stdout
       .split(/\r?\n/)
@@ -509,7 +568,9 @@ async function loadDatasetRows(dataset) {
       .filter(Boolean)
       .map((line) => line.split(/\s+/).pop())
       .filter((filePath) => filePath && !filePath.endsWith("/"))
-      .filter((filePath) => /^(.*\/)?(part-|.*\.(json|jsonl|csv|txt))/.test(filePath))
+      .filter((filePath) =>
+        /^(.*\/)?(part-|.*\.(json|jsonl|csv|txt))/.test(filePath),
+      )
       .slice(0, 8);
 
     if (!files.length) {
@@ -518,8 +579,14 @@ async function loadDatasetRows(dataset) {
 
     let rows = [];
     for (const filePath of files) {
-      const catCommand = `hdfs dfs -cat "${filePath.replace(/"/g, '\\"')}"`;
-      const { stdout: fileContent } = await exec(catCommand, { timeout: 30000 });
+      const escapedFilePath = filePath.replace(/"/g, '\\"');
+      const { stdout: fileContent } = await execFirstSuccessful(
+        [
+          `hdfs dfs -cat "${escapedFilePath}"`,
+          `hadoop fs -cat "${escapedFilePath}"`,
+        ],
+        30000,
+      );
       rows = rows.concat(parseDatasetText(fileContent));
     }
 
@@ -560,7 +627,31 @@ app.post("/api/chat", async (req, res) => {
       });
     }
 
-    // Step 4: Generate summary
+    // Step 4: If SQL result is empty, fall back to HDFS dataset files for chatbot preview.
+    if (!rows.length) {
+      const dataset = inferDatasetFromQuestion(question);
+      try {
+        const datasetRows = await loadDatasetRows(dataset);
+        const previewRows = toTabularRows(datasetRows, 200);
+        if (previewRows.length) {
+          const previewColumns = Object.keys(previewRows[0]);
+          return res.json({
+            question,
+            summary: `Loaded ${previewRows.length} rows from file dataset '${dataset}' at ${HDFS_BASE_PATH}/${dataset}.`,
+            sql: `-- FILE PREVIEW MODE (${dataset})`,
+            rows: previewRows,
+            columns: previewColumns,
+            notes: ["Backend connected.", "Loaded from HDFS files."],
+          });
+        }
+      } catch (fileError) {
+        return res.status(400).json({
+          error: `No SQL results and file load failed: ${fileError.message}`,
+        });
+      }
+    }
+
+    // Step 5: Generate summary
     const summary = generateSummary(rows, columns, question);
 
     res.json({
@@ -633,7 +724,9 @@ app.listen(API_PORT, () => {
   );
   console.log(`💚 Health check: http://localhost:${API_PORT}/api/health`);
   console.log("");
-  console.log("ℹ️  Set LLM_API_KEY (or DEEPSEEK_API_KEY) to enable AI SQL generation.");
+  console.log(
+    "ℹ️  Set LLM_API_KEY (or DEEPSEEK_API_KEY) to enable AI SQL generation.",
+  );
   console.log("ℹ️  Set DB_PATH env var to use a custom database.");
   console.log("");
 });

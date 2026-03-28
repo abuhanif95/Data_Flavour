@@ -201,6 +201,8 @@ function DashboardPage({ isDarkMode }) {
   const selectedDataset = activeModule
     ? moduleDatasetMap[activeModule.name] || "comprehensive"
     : "comprehensive";
+  const shouldFetchRemoteData =
+    selectedModule === "dataAnalysis" && Boolean(selectedQuestion);
 
   const fallbackChartData = useMemo(() => {
     const seed =
@@ -230,7 +232,7 @@ function DashboardPage({ isDarkMode }) {
   }, [selectedQuestion]);
 
   useEffect(() => {
-    if (!selectedQuestion) {
+    if (!shouldFetchRemoteData) {
       setRemoteChartData([]);
       setChartError("");
       setIsChartLoading(false);
@@ -276,7 +278,7 @@ function DashboardPage({ isDarkMode }) {
     fetchChartData();
 
     return () => controller.abort();
-  }, [selectedDataset, selectedQuestion]);
+  }, [selectedDataset, shouldFetchRemoteData]);
 
   const chartData = remoteChartData.length
     ? remoteChartData
