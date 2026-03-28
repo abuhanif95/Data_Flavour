@@ -1,5 +1,4 @@
 import React from "react";
-// import AnimatedSphere from "../components/AnimatedSphere";
 
 function HomePage({ isDarkMode, setCurrentPage }) {
   return (
@@ -17,8 +16,8 @@ function HomePage({ isDarkMode, setCurrentPage }) {
         }`}
       >
         <div className="mx-auto max-w-7xl px-4 py-24 sm:px-6 lg:px-8 w-full">
-          <div className="flex items-center justify-center">
-            {/* Center Content */}
+          <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-2">
+            {/* Left Content */}
             <div className="max-w-2xl">
               <div className="space-y-6">
                 <div>
@@ -74,9 +73,15 @@ function HomePage({ isDarkMode, setCurrentPage }) {
               </div>
             </div>
 
-            {/* Right Content - 3D Sphere */}
-            <div className="hidden lg:block h-full">
-              <AnimatedSphere isDarkMode={isDarkMode} />
+            {/* Right Content - Growth Chart Image */}
+            <div className="hidden lg:block">
+              <img
+                src={
+                  isDarkMode ? "/growth-chart.svg" : "/growth-chart-light.svg"
+                }
+                alt="Growth chart"
+                className="mx-auto w-full max-w-xl rounded-2xl object-cover"
+              />
             </div>
           </div>
         </div>

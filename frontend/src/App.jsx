@@ -498,7 +498,7 @@ function ChatbotContent({ isDarkMode }) {
 
 function App() {
   const [isDarkMode, setIsDarkMode] = useState(true);
-  const [currentPage, setCurrentPage] = useState("chatbot");
+  const [currentPage, setCurrentPage] = useState("home");
 
   const toggleTheme = () => {
     setIsDarkMode(!isDarkMode);
@@ -527,7 +527,9 @@ function App() {
       case "about":
         return <AboutPage isDarkMode={isDarkMode} />;
       default:
-        return <ChatbotContent isDarkMode={isDarkMode} />;
+        return (
+          <HomePage isDarkMode={isDarkMode} setCurrentPage={setCurrentPage} />
+        );
     }
   };
 
@@ -546,6 +548,21 @@ function App() {
         setCurrentPage={setCurrentPage}
       />
       {renderPage()}
+
+      {currentPage !== "chatbot" && (
+        <button
+          onClick={() => setCurrentPage("chatbot")}
+          className={`fixed bottom-6 right-6 z-50 h-14 w-14 rounded-full shadow-xl transition-all duration-300 hover:-translate-y-1 hover:scale-105 ${
+            isDarkMode
+              ? "bg-gradient-to-r from-cyan-500 to-blue-600 text-white hover:shadow-cyan-500/40"
+              : "bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:shadow-blue-400/40"
+          }`}
+          title="Open chatbot"
+          aria-label="Open chatbot"
+        >
+          <span className="text-2xl">💬</span>
+        </button>
+      )}
     </div>
   );
 }

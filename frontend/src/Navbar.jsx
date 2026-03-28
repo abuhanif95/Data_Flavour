@@ -25,12 +25,7 @@ function Navbar({ isDarkMode, toggleTheme, currentPage, setCurrentPage }) {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo and Brand */}
-          <div className="flex items-center gap-3">
-            <div
-              className={`h-10 w-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center font-bold text-white`}
-            >
-              F
-            </div>
+          <div className="flex items-center">
             <h1
               className={`text-2xl font-bold tracking-tight hidden sm:inline ${
                 isDarkMode ? "text-white" : "text-slate-900"
