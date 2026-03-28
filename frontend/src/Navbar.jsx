@@ -7,7 +7,12 @@ function Navbar({ isDarkMode, toggleTheme, currentPage, setCurrentPage }) {
     { name: "Home", page: "home", icon: "🏠" },
     { name: "Dashboard", page: "dashboard", icon: "📊" },
     { name: "Chatbot", page: "chatbot", icon: "💬" },
-    { name: "About Us", page: "about", icon: "ℹ️" },
+  ];
+
+  const rightNavItems = [
+    { name: "Folder", page: "folder", icon: "📁" },
+    { name: "Repo", page: "repo", icon: "📦" },
+    { name: "About", page: "about", icon: "ℹ️" },
   ];
 
   const handleNavClick = (page) => {
@@ -19,8 +24,8 @@ function Navbar({ isDarkMode, toggleTheme, currentPage, setCurrentPage }) {
     <nav
       className={`sticky top-0 z-50 border-b transition-colors ${
         isDarkMode
-          ? "border-slate-900 bg-black"
-          : "border-slate-200 bg-white"
+          ? "border-purple-900/50 bg-gradient-to-r from-slate-950 via-blue-950/40 to-purple-950/40"
+          : "border-purple-200 bg-gradient-to-r from-blue-50 via-purple-50 to-blue-50"
       }`}
     >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -28,7 +33,7 @@ function Navbar({ isDarkMode, toggleTheme, currentPage, setCurrentPage }) {
           {/* Logo and Brand */}
           <div className="flex items-center gap-3">
             <div
-              className={`h-10 w-10 rounded-lg bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center font-bold text-white`}
+              className={`h-10 w-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center font-bold text-white`}
             >
               F
             </div>
@@ -37,12 +42,12 @@ function Navbar({ isDarkMode, toggleTheme, currentPage, setCurrentPage }) {
                 isDarkMode ? "text-white" : "text-slate-900"
               }`}
             >
-              Flavour<span className="text-cyan-500">AI</span>
+              Flavour<span className="bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">AI</span>
             </h1>
           </div>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-1">
+          <div className="hidden md:flex items-center gap-2">
             {navItems.map((item) => (
               <button
                 key={item.page}
@@ -50,11 +55,32 @@ function Navbar({ isDarkMode, toggleTheme, currentPage, setCurrentPage }) {
                 className={`px-4 py-2 rounded-lg transition-all font-medium text-sm ${
                   currentPage === item.page
                     ? isDarkMode
-                      ? "bg-blue-600 text-white"
-                      : "bg-blue-100 text-blue-700"
+                      ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white"
+                      : "bg-gradient-to-r from-blue-200 to-purple-200 text-blue-700"
                     : isDarkMode
-                      ? "text-slate-300 hover:bg-blue-600 hover:text-white"
-                      : "text-slate-600 hover:bg-blue-100 hover:text-blue-700"
+                      ? "text-slate-200 hover:bg-gradient-to-r hover:from-blue-600/60 hover:to-purple-600/60 hover:text-white"
+                      : "text-slate-700 hover:bg-gradient-to-r hover:from-blue-100/60 hover:to-purple-100/60 hover:text-purple-700"
+                }`}
+              >
+                {item.name}
+              </button>
+            ))}
+          </div>
+
+          {/* Right Navigation */}
+          <div className="hidden lg:flex items-center gap-2">
+            {rightNavItems.map((item) => (
+              <button
+                key={item.page}
+                onClick={() => handleNavClick(item.page)}
+                className={`px-4 py-2 rounded-lg transition-all font-medium text-sm ${
+                  currentPage === item.page
+                    ? isDarkMode
+                      ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white"
+                      : "bg-gradient-to-r from-blue-200 to-purple-200 text-blue-700"
+                    : isDarkMode
+                      ? "text-slate-200 hover:bg-gradient-to-r hover:from-blue-600/60 hover:to-purple-600/60 hover:text-white"
+                      : "text-slate-700 hover:bg-gradient-to-r hover:from-blue-100/60 hover:to-purple-100/60 hover:text-purple-700"
                 }`}
               >
                 {item.name}
@@ -67,10 +93,10 @@ function Navbar({ isDarkMode, toggleTheme, currentPage, setCurrentPage }) {
             {/* Theme Toggle */}
             <button
               onClick={toggleTheme}
-              className={`p-2 rounded-lg transition-colors ${
+              className={`p-2 rounded-lg transition-all ${
                 isDarkMode
-                  ? "bg-slate-900 text-yellow-400 hover:bg-blue-600"
-                  : "bg-slate-200 text-slate-600 hover:bg-slate-300"
+                  ? "bg-slate-800/50 text-yellow-400 hover:bg-gradient-to-r hover:from-blue-600/60 hover:to-purple-600/60"
+                  : "bg-slate-200 text-slate-600 hover:bg-gradient-to-r hover:from-blue-200/60 hover:to-purple-200/60"
               }`}
               title={isDarkMode ? "Light mode" : "Dark mode"}
             >
@@ -80,10 +106,10 @@ function Navbar({ isDarkMode, toggleTheme, currentPage, setCurrentPage }) {
             {/* Mobile Menu Button */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className={`md:hidden p-2 rounded-lg transition-colors ${
+              className={`md:hidden p-2 rounded-lg transition-all ${
                 isDarkMode
-                  ? "bg-slate-900 text-slate-300 hover:bg-blue-600 hover:text-white"
-                  : "bg-slate-200 text-slate-600 hover:bg-slate-300"
+                  ? "bg-slate-800/50 text-slate-300 hover:bg-gradient-to-r hover:from-blue-600/60 hover:to-purple-600/60 hover:text-white"
+                  : "bg-slate-200 text-slate-600 hover:bg-gradient-to-r hover:from-blue-200/60 hover:to-purple-200/60"
               }`}
             >
               {mobileMenuOpen ? "✕" : "☰"}
@@ -95,7 +121,7 @@ function Navbar({ isDarkMode, toggleTheme, currentPage, setCurrentPage }) {
         {mobileMenuOpen && (
           <div
             className={`md:hidden border-t transition-colors ${
-              isDarkMode ? "border-slate-900" : "border-slate-200"
+              isDarkMode ? "border-purple-900/50" : "border-purple-200"
             }`}
           >
             <div className="space-y-1 px-2 py-4">
@@ -106,11 +132,28 @@ function Navbar({ isDarkMode, toggleTheme, currentPage, setCurrentPage }) {
                   className={`w-full text-left px-4 py-2 rounded-lg transition-all font-medium ${
                     currentPage === item.page
                       ? isDarkMode
-                        ? "bg-blue-600 text-white"
-                        : "bg-blue-100 text-blue-700"
+                        ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white"
+                        : "bg-gradient-to-r from-blue-200 to-purple-200 text-blue-700"
                       : isDarkMode
-                        ? "text-slate-300 hover:bg-blue-600 hover:text-white"
-                        : "text-slate-600 hover:bg-blue-100 hover:text-blue-700"
+                        ? "text-slate-300 hover:bg-gradient-to-r hover:from-blue-600/60 hover:to-purple-600/60 hover:text-white"
+                        : "text-slate-700 hover:bg-gradient-to-r hover:from-blue-100/60 hover:to-purple-100/60 hover:text-purple-700"
+                  }`}
+                >
+                  {item.name}
+                </button>
+              ))}
+              {rightNavItems.map((item) => (
+                <button
+                  key={item.page}
+                  onClick={() => handleNavClick(item.page)}
+                  className={`w-full text-left px-4 py-2 rounded-lg transition-all font-medium ${
+                    currentPage === item.page
+                      ? isDarkMode
+                        ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white"
+                        : "bg-gradient-to-r from-blue-200 to-purple-200 text-blue-700"
+                      : isDarkMode
+                        ? "text-slate-300 hover:bg-gradient-to-r hover:from-blue-600/60 hover:to-purple-600/60 hover:text-white"
+                        : "text-slate-700 hover:bg-gradient-to-r hover:from-blue-100/60 hover:to-purple-100/60 hover:text-purple-700"
                   }`}
                 >
                   {item.name}
