@@ -41,6 +41,7 @@ chmod +x deploy.sh
 ```
 
 The script will automatically:
+
 - ✅ Update system packages
 - ✅ Install Node.js 18 LTS
 - ✅ Install PM2 (process manager)
@@ -143,15 +144,15 @@ c = db.cursor()
 
 # Create tables
 c.execute('''CREATE TABLE IF NOT EXISTS businesses
-    (business_id TEXT PRIMARY KEY, name TEXT, city TEXT, state TEXT, 
+    (business_id TEXT PRIMARY KEY, name TEXT, city TEXT, state TEXT,
      stars REAL, review_count INTEGER, is_open INTEGER, categories TEXT)''')
 
 c.execute('''CREATE TABLE IF NOT EXISTS reviews
-    (review_id TEXT PRIMARY KEY, user_id TEXT, business_id TEXT, 
+    (review_id TEXT PRIMARY KEY, user_id TEXT, business_id TEXT,
      stars INTEGER, date TEXT, text TEXT, useful INTEGER)''')
 
 c.execute('''CREATE TABLE IF NOT EXISTS users
-    (user_id TEXT PRIMARY KEY, name TEXT, review_count INTEGER, 
+    (user_id TEXT PRIMARY KEY, name TEXT, review_count INTEGER,
      yelping_since TEXT, fans INTEGER, average_stars REAL)''')
 
 # Load business.json
@@ -200,11 +201,13 @@ Then Nginx will automatically redirect HTTP → HTTPS.
 ### Application not accessible
 
 1. Check if Nginx is running:
+
    ```bash
    sudo systemctl status nginx
    ```
 
 2. Check if backend API is running:
+
    ```bash
    pm2 status
    ```
@@ -274,6 +277,7 @@ ssh hanif@192.168.56.105
 ## Support
 
 For issues or questions, check:
+
 - Application logs: `pm2 logs data-flavour-api`
 - Nginx logs: `sudo tail -f /var/log/nginx/error.log`
 - Backend endpoint: `curl http://localhost:8000/api/health`

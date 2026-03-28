@@ -1,16 +1,16 @@
-import express from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
-import Database from 'better-sqlite3';
-import OpenAI from 'openai';
-import { z } from 'zod';
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
+import Database from "better-sqlite3";
+import OpenAI from "openai";
+import { z } from "zod";
 
 dotenv.config();
 
 const app = express();
 const API_PORT = process.env.API_PORT || 8000;
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
-const DB_PATH = process.env.DB_PATH || './yelp.db';
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
+const DB_PATH = process.env.DB_PATH || "./yelp.db";
 
 app.use(cors());
 app.use(express.json());
@@ -19,8 +19,8 @@ app.use(express.json());
 let db;
 try {
   db = new Database(DB_PATH);
-  db.pragma('journal_mode = WAL');
-  
+  db.pragma("journal_mode = WAL");
+
   // Create minimal schema for demo
   db.exec(`
     CREATE TABLE IF NOT EXISTS businesses (
@@ -55,9 +55,9 @@ try {
       date TEXT
     );
   `);
-  console.log('✓ Database initialized at:', DB_PATH);
+  console.log("✓ Database initialized at:", DB_PATH);
 } catch (error) {
-  console.error('Database error:', error.message);
+  console.error("Database error:", error.message);
 }
 
 // Schema context for LLM
@@ -104,7 +104,10 @@ Return ONLY a valid SQLite SELECT query with no markdown or explanation.
 async function generateSQL(question) {
   if (!OPENAI_API_KEY) {
     // Mock SQL for demo when no API key is set
-    if (question.toLowerCase().includes('top') && question.toLowerCase().includes('cit')) {
+    if (
+      question.toLowerCase().includes("top") &&
+      question.toLowerCase().includes("cit")
+    ) {
       return `
         SELECT city, COUNT(*) as business_count
         FROM businesses
@@ -114,7 +117,7 @@ async function generateSQL(question) {
         LIMIT 10;
       `.trim();
     }
-    if (question.toLowerCase().includes('restaurant')) {
+    if (question.toLowerCase().includes("restaurant")) {
       return `
         SELECT name, stars, review_count
         FROM businesses
@@ -130,14 +133,14 @@ async function generateSQL(question) {
 
   const client = new OpenAI({ apiKey: OPENAI_API_KEY });
   const response = await client.chat.completions.create({
-    model: 'gpt-4-turbo',
+    model: "gpt-4-turbo",
     messages: [
       {
-        role: 'system',
+        role: "system",
         content: `You are a SQL expert for Yelp datasets. ${YELP_SCHEMA}`,
       },
       {
-        role: 'user',
+        role: "user",
         content: question,
       },
     ],
@@ -147,8 +150,8 @@ async function generateSQL(question) {
 
   const sql = response.choices[0].message.content.trim();
   return sql
-    .replace(/```sql/g, '')
-    .replace(/```/g, '')
+    .replace(/```sql/g, "")
+    .replace(/```/g, "")
     .trim();
 }
 
@@ -191,15 +194,16 @@ function executeSQLWithErrorRecovery(sql, attempt = 1) {
  */
 function validateSQL(sql) {
   // Blocklist dangerous operations
-  const dangerous = /(\bDROP\b|\bDELETE\b|\bUPDATE\b|\bINSERT\b|\bALTER\b|\bCREATE\b)/i;
+  const dangerous =
+    /(\bDROP\b|\bDELETE\b|\bUPDATE\b|\bINSERT\b|\bALTER\b|\bCREATE\b)/i;
   if (dangerous.test(sql)) {
     throw new Error(
-      'Query contains restricted operations. Only SELECT queries are allowed.',
+      "Query contains restricted operations. Only SELECT queries are allowed.",
     );
   }
   // Basic sanity check
-  if (!sql.toLowerCase().includes('select')) {
-    throw new Error('Only SELECT queries are supported.');
+  if (!sql.toLowerCase().includes("select")) {
+    throw new Error("Only SELECT queries are supported.");
   }
   return sql;
 }
@@ -209,18 +213,18 @@ function validateSQL(sql) {
  */
 function generateSummary(rows, columns, question) {
   if (rows.length === 0) {
-    return 'No results found for your query.';
+    return "No results found for your query.";
   }
   if (rows.length === 1) {
     const row = rows[0];
     const facts = Object.entries(row)
       .map(([k, v]) => `${k}: ${v}`)
-      .join(', ');
+      .join(", ");
     return `Found 1 result: ${facts}`;
   }
   const desc = `Found ${rows.length} results. `;
   const firstRow = rows[0];
-  if ('count' in firstRow || 'COUNT(*)' in firstRow) {
+  if ("count" in firstRow || "COUNT(*)" in firstRow) {
     const total = Object.values(firstRow)[0];
     return `${desc}The total count is ${total}.`;
   }
@@ -230,7 +234,7 @@ function generateSummary(rows, columns, question) {
 /**
  * Main chat endpoint: Natural language → SQL → Results
  */
-app.post('/api/chat', async (req, res) => {
+app.post("/api/chat", async (req, res) => {
   try {
     const { question } = z
       .object({
@@ -238,20 +242,21 @@ app.post('/api/chat', async (req, res) => {
       })
       .parse(req.body);
 
-    console.log('\n📝 User question:', question);
+    console.log("\n📝 User question:", question);
 
     // Step 1: Generate SQL using LLM
-    console.log('🔄 Generating SQL...');
+    console.log("🔄 Generating SQL...");
     const sql = await generateSQL(question);
-    console.log('✓ Generated SQL:', sql);
+    console.log("✓ Generated SQL:", sql);
 
     // Step 2: Validate SQL for safety
-    console.log('🔐 Validating query...');
+    console.log("🔐 Validating query...");
     const validatedSQL = validateSQL(sql);
 
     // Step 3: Execute SQL with error recovery
-    console.log('⚙️  Executing query...');
-    const { success, rows, columns, error } = executeSQLWithErrorRecovery(validatedSQL);
+    console.log("⚙️  Executing query...");
+    const { success, rows, columns, error } =
+      executeSQLWithErrorRecovery(validatedSQL);
 
     if (!success) {
       return res.status(400).json({
@@ -268,12 +273,13 @@ app.post('/api/chat', async (req, res) => {
       sql: validatedSQL,
       rows,
       columns,
-      notes: ['Backend connected.'],
+      notes: ["Backend connected."],
     });
   } catch (error) {
-    console.error('❌ API error:', error.message);
+    console.error("❌ API error:", error.message);
     res.status(400).json({
-      error: error.message || 'An error occurred while processing your request.',
+      error:
+        error.message || "An error occurred while processing your request.",
     });
   }
 });
@@ -281,23 +287,23 @@ app.post('/api/chat', async (req, res) => {
 /**
  * Health check endpoint
  */
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+app.get("/api/health", (req, res) => {
+  res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
 /**
  * Start server
  */
 app.listen(API_PORT, () => {
-  console.log('');
-  console.log('╔════════════════════════════════════════╗');
-  console.log('║     Yelp Text-to-SQL API Server       ║');
-  console.log('╚════════════════════════════════════════╝');
+  console.log("");
+  console.log("╔════════════════════════════════════════╗");
+  console.log("║     Yelp Text-to-SQL API Server       ║");
+  console.log("╚════════════════════════════════════════╝");
   console.log(`\n🚀 Server running on http://localhost:${API_PORT}`);
   console.log(`📊 API endpoint: http://localhost:${API_PORT}/api/chat`);
   console.log(`💚 Health check: http://localhost:${API_PORT}/api/health`);
-  console.log('');
-  console.log('ℹ️  Set OPENAI_API_KEY env var to enable AI SQL generation.');
-  console.log('ℹ️  Set DB_PATH env var to use a custom database.');
-  console.log('');
+  console.log("");
+  console.log("ℹ️  Set OPENAI_API_KEY env var to enable AI SQL generation.");
+  console.log("ℹ️  Set DB_PATH env var to use a custom database.");
+  console.log("");
 });

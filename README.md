@@ -5,6 +5,7 @@ A modern full-stack web application for querying the Yelp dataset using natural 
 ## Project Overview
 
 This platform fulfills all requirements from the specification:
+
 - **Requirement 1**: Data analysis queries (business, user, review, rating, check-in analysis)
 - **Requirement 2**: Data enrichment with external datasets (weather, storefronts, review manipulation detection, open-world hypotheses)
 - **Requirement 3**: Full-stack Text-to-SQL conversational application with chat interface
@@ -12,12 +13,14 @@ This platform fulfills all requirements from the specification:
 ## Tech Stack
 
 ### Frontend
+
 - **React 19.2** - Latest React with hooks and concurrent rendering
 - **Tailwind CSS v4.2** - Utility-first CSS framework with modern design tokens
 - **Vite 8.0** - Lightning-fast build tool and dev server
 - **Modern ESM** - Fully modular JavaScript
 
 ### Backend
+
 - **Express.js** - Lightweight Node.js web framework
 - **better-sqlite3** - Embedded relational database
 - **OpenAI API** - LLM for Natural Language → SQL translation
@@ -46,12 +49,14 @@ Data_Flavour/
 ## Getting Started
 
 ### Prerequisites
+
 - Node.js 18+ (npm or yarn)
 - OpenAI API key (optional for demo mode)
 
 ### Installation & Setup
 
 1. **Install frontend dependencies**:
+
    ```bash
    cd frontend
    npm install
@@ -59,6 +64,7 @@ Data_Flavour/
    ```
 
 2. **Install backend dependencies**:
+
    ```bash
    cd backend
    npm install
@@ -76,6 +82,7 @@ Data_Flavour/
 ### Running the Application
 
 **Terminal 1 - Start Backend API** (port 8000):
+
 ```bash
 cd backend
 npm run dev        # development with file watch
@@ -84,6 +91,7 @@ npm start          # production
 ```
 
 **Terminal 2 - Start Frontend Dev Server** (port 5173):
+
 ```bash
 cd frontend
 npm run dev
@@ -94,6 +102,7 @@ Then open your browser to **http://localhost:5173** and start asking questions!
 ## Features
 
 ### 🎨 User Interface
+
 - **Modern Chat Layout**: Clean, responsive interface with dual color themes
 - **Real-time Feedback**: Loading indicators and connection status
 - **Code Display**: SQL queries rendered in syntax-highlighted blocks
@@ -101,17 +110,20 @@ Then open your browser to **http://localhost:5173** and start asking questions!
 - **Responsive Design**: Mobile-friendly with Tailwind's breakpoint system
 
 ### 🤖 AI-Powered Query Translation
+
 - Convert natural English questions into valid SQLite queries
 - Automatic error correction with fallback queries
 - Support for complex analytical questions (aggregations, joins, filtering)
 
 ### 🔒 Safety & Validation
+
 - SQL injection prevention via query validation
 - Blocklist for dangerous operations (DROP, DELETE, UPDATE, ALTER, etc.)
 - Zod schema validation for API inputs
 - Error recovery with graceful fallbacks
 
 ### ⚡ Performance
+
 - Vite's instant module replacement (HMR)
 - Optimized database queries with proper indexing
 - CORS middleware for secure cross-origin requests
@@ -119,6 +131,7 @@ Then open your browser to **http://localhost:5173** and start asking questions!
 ## Usage Examples
 
 Ask questions like:
+
 - "Show me the top 5 cities by number of restaurants"
 - "What are the highest-rated Mexican restaurants in New York with over 500 reviews?"
 - "Count reviews per year"
@@ -128,6 +141,7 @@ Ask questions like:
 ## Environment Variables
 
 **Backend (.env)**:
+
 ```bash
 # LLM Configuration (optional)
 OPENAI_API_KEY=sk-your-api-key-here
@@ -142,7 +156,9 @@ API_PORT=8000
 ## API Endpoints
 
 ### POST /api/chat
+
 Request:
+
 ```json
 {
   "question": "Show me the top 10 cities by restaurant count"
@@ -150,6 +166,7 @@ Request:
 ```
 
 Response:
+
 ```json
 {
   "question": "Show me the top 10 cities by restaurant count",
@@ -165,7 +182,9 @@ Response:
 ```
 
 ### GET /api/health
+
 Health check endpoint. Returns:
+
 ```json
 {
   "status": "ok",
@@ -187,6 +206,7 @@ Load your Yelp JSON files into these tables using a data pipeline (e.g., Python 
 ## Development
 
 ### Build Frontend for Production
+
 ```bash
 cd frontend
 npm run build
@@ -194,12 +214,14 @@ npm run build
 ```
 
 ### Lint JavaScript
+
 ```bash
 cd frontend
 npm run lint
 ```
 
 ### Test API Locally
+
 ```bash
 curl -X POST http://localhost:8000/api/chat \
   -H "Content-Type: application/json" \
@@ -209,6 +231,7 @@ curl -X POST http://localhost:8000/api/chat \
 ## Deployment
 
 ### Frontend (Vercel, Netlify, etc.)
+
 ```bash
 cd frontend
 npm run build
@@ -216,6 +239,7 @@ npm run build
 ```
 
 ### Backend (Heroku, Railway, AWS Lambda, etc.)
+
 ```bash
 cd backend
 npm install
@@ -236,16 +260,19 @@ npm start
 ## Troubleshooting
 
 **Why is the backend showing "WAITING FOR BACKEND"?**
+
 - Ensure the backend server is running on port 8000
 - Check browser console for network errors
 - Verify CORS is enabled in backend
 
 **Why are SQL queries failing?**
+
 - Ensure Yelp data is loaded into your SQLite database
 - Check that table names match exactly
 - Review backend console logs for SQL errors
 
 **Can I use this without an OpenAI API key?**
+
 - Yes! The backend falls back to mock SQL generation if no API key is present
 - Great for demos and testing
 
