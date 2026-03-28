@@ -1,5 +1,5 @@
 import React from "react";
-import AnimatedSphere from "../components/AnimatedSphere";
+// import AnimatedSphere from "../components/AnimatedSphere";
 
 function HomePage({ isDarkMode, setCurrentPage }) {
   return (
@@ -17,9 +17,9 @@ function HomePage({ isDarkMode, setCurrentPage }) {
         }`}
       >
         <div className="mx-auto max-w-7xl px-4 py-24 sm:px-6 lg:px-8 w-full">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            {/* Left Content */}
-            <div>
+          <div className="flex items-center justify-center">
+            {/* Center Content */}
+            <div className="max-w-2xl">
               <div className="space-y-6">
                 <div>
                   <p

@@ -9,12 +9,6 @@ function Navbar({ isDarkMode, toggleTheme, currentPage, setCurrentPage }) {
     { name: "Chatbot", page: "chatbot", icon: "💬" },
   ];
 
-  const rightNavItems = [
-    { name: "Folder", page: "folder", icon: "📁" },
-    { name: "Repo", page: "repo", icon: "📦" },
-    { name: "About", page: "about", icon: "ℹ️" },
-  ];
-
   const handleNavClick = (page) => {
     setCurrentPage(page);
     setMobileMenuOpen(false);
@@ -42,7 +36,10 @@ function Navbar({ isDarkMode, toggleTheme, currentPage, setCurrentPage }) {
                 isDarkMode ? "text-white" : "text-slate-900"
               }`}
             >
-              Flavour<span className="bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">AI</span>
+              Data
+              <span className="bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">
+                _Flavour
+              </span>
             </h1>
           </div>
 
@@ -67,28 +64,7 @@ function Navbar({ isDarkMode, toggleTheme, currentPage, setCurrentPage }) {
             ))}
           </div>
 
-          {/* Right Navigation */}
-          <div className="hidden lg:flex items-center gap-2">
-            {rightNavItems.map((item) => (
-              <button
-                key={item.page}
-                onClick={() => handleNavClick(item.page)}
-                className={`px-4 py-2 rounded-lg transition-all font-medium text-sm ${
-                  currentPage === item.page
-                    ? isDarkMode
-                      ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white"
-                      : "bg-gradient-to-r from-blue-200 to-purple-200 text-blue-700"
-                    : isDarkMode
-                      ? "text-slate-200 hover:bg-gradient-to-r hover:from-blue-600/60 hover:to-purple-600/60 hover:text-white"
-                      : "text-slate-700 hover:bg-gradient-to-r hover:from-blue-100/60 hover:to-purple-100/60 hover:text-purple-700"
-                }`}
-              >
-                {item.name}
-              </button>
-            ))}
-          </div>
-
-          {/* Right Side: Theme Toggle and Mobile Menu */}
+          {/* Right Side: Theme Toggle, About, and Mobile Menu */}
           <div className="flex items-center gap-3">
             {/* Theme Toggle */}
             <button
@@ -103,7 +79,21 @@ function Navbar({ isDarkMode, toggleTheme, currentPage, setCurrentPage }) {
               {isDarkMode ? "☀️" : "🌙"}
             </button>
 
-            {/* Mobile Menu Button */}
+            {/* About Link */}
+            <button
+              onClick={() => handleNavClick("about")}
+              className={`hidden sm:inline px-4 py-2 rounded-lg transition-all font-medium text-sm ${
+                currentPage === "about"
+                  ? isDarkMode
+                    ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white"
+                    : "bg-gradient-to-r from-blue-200 to-purple-200 text-blue-700"
+                  : isDarkMode
+                    ? "text-slate-200 hover:bg-gradient-to-r hover:from-blue-600/60 hover:to-purple-600/60 hover:text-white"
+                    : "text-slate-700 hover:bg-gradient-to-r hover:from-blue-100/60 hover:to-purple-100/60 hover:text-purple-700"
+              }`}
+            >
+              About
+            </button>
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className={`md:hidden p-2 rounded-lg transition-all ${
@@ -142,23 +132,20 @@ function Navbar({ isDarkMode, toggleTheme, currentPage, setCurrentPage }) {
                   {item.name}
                 </button>
               ))}
-              {rightNavItems.map((item) => (
-                <button
-                  key={item.page}
-                  onClick={() => handleNavClick(item.page)}
-                  className={`w-full text-left px-4 py-2 rounded-lg transition-all font-medium ${
-                    currentPage === item.page
-                      ? isDarkMode
-                        ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white"
-                        : "bg-gradient-to-r from-blue-200 to-purple-200 text-blue-700"
-                      : isDarkMode
-                        ? "text-slate-300 hover:bg-gradient-to-r hover:from-blue-600/60 hover:to-purple-600/60 hover:text-white"
-                        : "text-slate-700 hover:bg-gradient-to-r hover:from-blue-100/60 hover:to-purple-100/60 hover:text-purple-700"
-                  }`}
-                >
-                  {item.name}
-                </button>
-              ))}
+              <button
+                onClick={() => handleNavClick("about")}
+                className={`w-full text-left px-4 py-2 rounded-lg transition-all font-medium ${
+                  currentPage === "about"
+                    ? isDarkMode
+                      ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white"
+                      : "bg-gradient-to-r from-blue-200 to-purple-200 text-blue-700"
+                    : isDarkMode
+                      ? "text-slate-300 hover:bg-gradient-to-r hover:from-blue-600/60 hover:to-purple-600/60 hover:text-white"
+                      : "text-slate-700 hover:bg-gradient-to-r hover:from-blue-100/60 hover:to-purple-100/60 hover:text-purple-700"
+                }`}
+              >
+                About
+              </button>
             </div>
           </div>
         )}
