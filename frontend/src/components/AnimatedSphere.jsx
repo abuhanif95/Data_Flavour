@@ -23,7 +23,7 @@ function AnimatedSphere({ isDarkMode }) {
       0.1,
       1000,
     );
-    camera.position.z = 2.5;
+    camera.position.z = 2.2;
 
     // Renderer setup
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -35,8 +35,8 @@ function AnimatedSphere({ isDarkMode }) {
     containerRef.current.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
-    // Create wireframe sphere geometry
-    const geometry = new THREE.IcosahedronGeometry(1.5, 4);
+    // Create wireframe sphere geometry - SMALLER
+    const geometry = new THREE.IcosahedronGeometry(1.0, 4);
     const wireframeGeometry = new THREE.WireframeGeometry(geometry);
 
     const lineMaterial = new THREE.LineBasicMaterial({
@@ -62,7 +62,7 @@ function AnimatedSphere({ isDarkMode }) {
 
     const pointMaterial = new THREE.PointsMaterial({
       color: isDarkMode ? 0x06b6d4 : 0x0891b2,
-      size: 0.05,
+      size: 0.04,
       sizeAttenuation: true,
     });
 
@@ -85,31 +85,13 @@ function AnimatedSphere({ isDarkMode }) {
 
     window.addEventListener("resize", handleResize);
 
-    // Animation loop
-    let mouseX = 0;
-    let mouseY = 0;
-    let targetX = 0;
-    let targetY = 0;
-
-    const handleMouseMove = (e) => {
-      mouseX = (e.clientX / window.innerWidth) * 2 - 1;
-      mouseY = -(e.clientY / window.innerHeight) * 2 + 1;
-      targetX = mouseX * 0.5;
-      targetY = mouseY * 0.5;
-    };
-
-    window.addEventListener("mousemove", handleMouseMove);
-
     const animate = () => {
       animationIdRef.current = requestAnimationFrame(animate);
 
-      // Smooth rotation with mouse interaction
+      // Simple continuous spin - no mouse interaction
       if (sphereRef.current) {
-        sphereRef.current.rotation.x +=
-          (targetY - sphereRef.current.rotation.x) * 0.05;
-        sphereRef.current.rotation.y +=
-          (targetX - sphereRef.current.rotation.y) * 0.05;
-        sphereRef.current.rotation.z += 0.002;
+        sphereRef.current.rotation.x += 0.003;
+        sphereRef.current.rotation.y += 0.005;
       }
 
       if (points) {
@@ -124,7 +106,6 @@ function AnimatedSphere({ isDarkMode }) {
     // Cleanup
     return () => {
       window.removeEventListener("resize", handleResize);
-      window.removeEventListener("mousemove", handleMouseMove);
       if (animationIdRef.current) {
         cancelAnimationFrame(animationIdRef.current);
       }
@@ -146,7 +127,7 @@ function AnimatedSphere({ isDarkMode }) {
     <div
       ref={containerRef}
       className="w-full h-full rounded-lg overflow-hidden"
-      style={{ minHeight: "600px" }}
+      style={{ minHeight: "500px" }}
     />
   );
 }
