@@ -1,4 +1,8 @@
 import { useMemo, useState, useRef, useEffect } from "react";
+import Navbar from "./Navbar";
+import HomePage from "./pages/HomePage";
+import DashboardPage from "./pages/DashboardPage";
+import AboutPage from "./pages/AboutPage";
 
 const SAMPLE_QUERIES = [
   "Show me the top 10 cities by number of restaurants",
@@ -8,7 +12,7 @@ const SAMPLE_QUERIES = [
   "List businesses with over 500 reviews",
 ];
 
-function CopyButton({ text }) {
+function CopyButton({ text, isDarkMode }) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
@@ -20,7 +24,11 @@ function CopyButton({ text }) {
   return (
     <button
       onClick={handleCopy}
-      className="ml-2 rounded px-2 py-1 text-xs font-medium text-cyan-300 transition hover:bg-cyan-500/20"
+      className={`ml-2 rounded px-2 py-1 text-xs font-medium transition ${
+        isDarkMode
+          ? "text-cyan-300 hover:bg-cyan-500/20"
+          : "text-cyan-600 hover:bg-cyan-400/20"
+      }`}
       title="Copy SQL to clipboard"
     >
       {copied ? "✓ Copied" : "Copy"}
@@ -28,23 +36,31 @@ function CopyButton({ text }) {
   );
 }
 
-function LoadingSpinner() {
+function LoadingSpinner({ isDarkMode }) {
   return (
     <div className="flex items-center gap-2">
-      <div className="h-2 w-2 animate-bounce rounded-full bg-cyan-400"></div>
       <div
-        className="h-2 w-2 animate-bounce rounded-full bg-cyan-400"
+        className={`h-2 w-2 animate-bounce rounded-full ${
+          isDarkMode ? "bg-cyan-400" : "bg-cyan-600"
+        }`}
+      ></div>
+      <div
+        className={`h-2 w-2 animate-bounce rounded-full ${
+          isDarkMode ? "bg-cyan-400" : "bg-cyan-600"
+        }`}
         style={{ animationDelay: "0.2s" }}
       ></div>
       <div
-        className="h-2 w-2 animate-bounce rounded-full bg-cyan-400"
+        className={`h-2 w-2 animate-bounce rounded-full ${
+          isDarkMode ? "bg-cyan-400" : "bg-cyan-600"
+        }`}
         style={{ animationDelay: "0.4s" }}
       ></div>
     </div>
   );
 }
 
-function DataTable({ columns, rows }) {
+function DataTable({ columns, rows, isDarkMode }) {
   const [sortCol, setSortCol] = useState(null);
   const [sortDir, setSortDir] = useState("asc");
 
@@ -67,10 +83,24 @@ function DataTable({ columns, rows }) {
   });
 
   return (
-    <div className="mt-4 overflow-x-auto rounded-xl border border-white/10 bg-white/5">
+    <div
+      className={`mt-4 overflow-x-auto rounded-xl border ${
+        isDarkMode
+          ? "border-white/10 bg-white/5"
+          : "border-slate-300/20 bg-slate-100/20"
+      }`}
+    >
       <div className="inline-block min-w-full">
-        <table className="w-full text-left text-sm">
-          <thead className="sticky top-0 bg-white/15 text-cyan-200">
+        <table className={`w-full text-left text-sm ${
+          isDarkMode ? "text-slate-100" : "text-slate-900"
+        }`}>
+          <thead
+            className={`sticky top-0 ${
+              isDarkMode
+                ? "bg-white/15 text-cyan-200"
+                : "bg-slate-200/30 text-cyan-700"
+            }`}
+          >
             <tr>
               {columns.map((column) => (
                 <th
@@ -83,7 +113,11 @@ function DataTable({ columns, rows }) {
                       setSortDir("asc");
                     }
                   }}
-                  className="cursor-pointer select-none px-4 py-3 font-semibold transition hover:bg-white/20"
+                  className={`cursor-pointer select-none px-4 py-3 font-semibold transition ${
+                    isDarkMode
+                      ? "hover:bg-white/20"
+                      : "hover:bg-slate-300/30"
+                  }`}
                 >
                   {column}
                   {sortCol === column && (
@@ -95,13 +129,24 @@ function DataTable({ columns, rows }) {
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-white/5">
+          <tbody
+            className={`divide-y ${
+              isDarkMode ? "divide-white/5" : "divide-slate-300/20"
+            }`}
+          >
             {sortedRows.slice(0, 50).map((row, idx) => (
-              <tr key={idx} className="transition hover:bg-white/10">
+              <tr
+                key={idx}
+                className={`transition ${
+                  isDarkMode ? "hover:bg-white/10" : "hover:bg-slate-200/30"
+                }`}
+              >
                 {columns.map((col) => (
                   <td
                     key={`${idx}-${col}`}
-                    className="px-4 py-2 text-slate-100"
+                    className={`px-4 py-2 ${
+                      isDarkMode ? "text-slate-100" : "text-slate-900"
+                    }`}
                   >
                     {typeof row[col] === "number"
                       ? Number.isInteger(row[col])
@@ -115,7 +160,13 @@ function DataTable({ columns, rows }) {
           </tbody>
         </table>
         {sortedRows.length > 50 && (
-          <div className="border-t border-white/10 bg-white/5 px-4 py-2 text-center text-xs text-slate-300">
+          <div
+            className={`border-t px-4 py-2 text-center text-xs ${
+              isDarkMode
+                ? "border-white/10 bg-white/5 text-slate-300"
+                : "border-slate-300/20 bg-slate-100/20 text-slate-700"
+            }`}
+          >
             Showing 50 of {sortedRows.length} results
           </div>
         )}
@@ -124,7 +175,8 @@ function DataTable({ columns, rows }) {
   );
 }
 
-function App() {
+// ChatbotContent component
+function ChatbotContent({ isDarkMode }) {
   const [input, setInput] = useState(
     "Show me the top 5 cities by number of restaurants.",
   );
@@ -214,43 +266,47 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
+    <div
+      className={`min-h-screen transition-colors ${
+        isDarkMode
+          ? "bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900"
+          : "bg-gradient-to-b from-slate-50 via-slate-100 to-slate-50"
+      }`}
+    >
       <div className="mx-auto flex min-h-screen w-full max-w-[1400px] flex-col">
-        {/* Header */}
-        <header className="sticky top-0 z-40 border-b border-white/10 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 backdrop-blur-sm px-4 py-3 md:px-8">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-cyan-400 to-blue-600"></div>
-              <h1 className="text-xl font-bold tracking-tight text-white md:text-2xl">
-                Flavour<span className="text-cyan-400">AI</span>
-              </h1>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                backendConnected
-                  ? "bg-emerald-500/20 text-emerald-300"
-                  : "bg-amber-500/20 text-amber-300"
-              }`}>
-                {backendConnected ? "🟢 Connected" : "🟡 Connecting..."}
-              </div>
-            </div>
-          </div>
-        </header>
-
         {/* Hero Section */}
-        <section className="border-b border-white/5 bg-gradient-to-b from-slate-800 to-slate-900 px-4 py-8 md:px-8">
+        <section
+          className={`border-b transition-colors ${
+            isDarkMode
+              ? "border-white/10 bg-gradient-to-b from-slate-800 to-slate-900"
+              : "border-slate-200 bg-gradient-to-b from-slate-100 to-slate-50"
+          } px-4 py-8 md:px-8`}
+        >
           <div className="space-y-2">
-            <h2 className="text-3xl font-bold text-white md:text-4xl">
+            <h2
+              className={`text-3xl font-bold md:text-4xl ${
+                isDarkMode ? "text-white" : "text-slate-900"
+              }`}
+            >
               Query Yelp with Natural Language
             </h2>
-            <p className="text-slate-300">
-              Ask anything about restaurants, reviews, users, and check-ins. Watch as AI converts your question to SQL instantly.
+            <p
+              className={isDarkMode ? "text-slate-300" : "text-slate-700"}
+            >
+              Ask anything about restaurants, reviews, users, and check-ins.
+              Watch as AI converts your question to SQL instantly.
             </p>
           </div>
         </section>
 
         {/* Main Chat Area */}
-        <main className="flex flex-1 flex-col bg-gradient-to-b from-slate-800 via-slate-900 to-slate-900 px-4 py-6 md:px-8">
+        <main
+          className={`flex flex-1 flex-col px-4 py-6 md:px-8 transition-colors ${
+            isDarkMode
+              ? "bg-gradient-to-b from-slate-800 via-slate-900 to-slate-900"
+              : "bg-gradient-to-b from-slate-100 via-slate-50 to-slate-50"
+          }`}
+        >
           <div className="mx-auto w-full max-w-4xl flex-1 space-y-4">
             {messages.map((message, index) => (
               <article
@@ -260,21 +316,43 @@ function App() {
                 <div
                   className={`max-w-full rounded-2xl px-4 py-3 md:max-w-[85%] ${
                     message.role === "user"
-                      ? "rounded-br-none border border-cyan-500/50 bg-gradient-to-br from-cyan-900/50 to-cyan-950/50 text-cyan-50 shadow-lg shadow-cyan-500/10"
-                      : "rounded-bl-none border border-slate-600/50 bg-gradient-to-br from-slate-750/50 to-slate-800/50 text-slate-100 shadow-lg shadow-slate-950/50"
+                      ? `rounded-br-none border ${
+                          isDarkMode
+                            ? "border-cyan-500/50 bg-gradient-to-br from-cyan-900/50 to-cyan-950/50 text-cyan-50 shadow-lg shadow-cyan-500/10"
+                            : "border-cyan-400/50 bg-gradient-to-br from-cyan-100 to-cyan-50 text-cyan-900 shadow-lg shadow-cyan-400/20"
+                        }`
+                      : `rounded-bl-none border ${
+                          isDarkMode
+                            ? "border-slate-600/50 bg-gradient-to-br from-slate-750/50 to-slate-800/50 text-slate-100 shadow-lg shadow-slate-950/50"
+                            : "border-slate-300/50 bg-gradient-to-br from-slate-100 to-slate-50 text-slate-900 shadow-lg shadow-slate-300/20"
+                        }`
                   }`}
                 >
                   <p className="leading-relaxed">{message.text}</p>
 
                   {message.sql && (
-                    <div className="mt-3 space-y-2 rounded-lg border border-slate-600/50 bg-black/30 p-3">
+                    <div
+                      className={`mt-3 space-y-2 rounded-lg border p-3 ${
+                        isDarkMode
+                          ? "border-slate-600/50 bg-black/30"
+                          : "border-slate-300/50 bg-white/30"
+                      }`}
+                    >
                       <div className="flex items-center justify-between">
-                        <p className="text-xs font-semibold uppercase tracking-wider text-cyan-300">
+                        <p
+                          className={`text-xs font-semibold uppercase tracking-wider ${
+                            isDarkMode ? "text-cyan-300" : "text-cyan-600"
+                          }`}
+                        >
                           Generated SQL
                         </p>
-                        <CopyButton text={message.sql} />
+                        <CopyButton text={message.sql} isDarkMode={isDarkMode} />
                       </div>
-                      <pre className="overflow-x-auto text-xs text-emerald-300 md:text-sm">
+                      <pre
+                        className={`overflow-x-auto text-xs md:text-sm ${
+                          isDarkMode ? "text-emerald-300" : "text-emerald-700"
+                        }`}
+                      >
                         <code>{message.sql}</code>
                       </pre>
                     </div>
@@ -285,6 +363,7 @@ function App() {
                       <DataTable
                         columns={message.columns}
                         rows={message.rows}
+                        isDarkMode={isDarkMode}
                       />
                     </div>
                   )}
@@ -296,8 +375,12 @@ function App() {
                           key={note}
                           className={`rounded-full px-3 py-1 text-xs font-medium ${
                             note === "error"
-                              ? "bg-red-500/20 text-red-300"
-                              : "bg-slate-700/50 text-slate-300"
+                              ? isDarkMode
+                                ? "bg-red-500/20 text-red-300"
+                                : "bg-red-200 text-red-700"
+                              : isDarkMode
+                                ? "bg-slate-700/50 text-slate-300"
+                                : "bg-slate-300/50 text-slate-700"
                           }`}
                         >
                           {note}
@@ -311,9 +394,15 @@ function App() {
 
             {loading && (
               <article className="flex justify-start animate-in fade-in duration-300">
-                <div className="rounded-2xl rounded-bl-none border border-slate-600/50 bg-gradient-to-br from-slate-750/50 to-slate-800/50 px-4 py-3 text-slate-300">
+                <div
+                  className={`rounded-2xl rounded-bl-none border px-4 py-3 ${
+                    isDarkMode
+                      ? "border-slate-600/50 bg-gradient-to-br from-slate-750/50 to-slate-800/50 text-slate-300"
+                      : "border-slate-300/50 bg-gradient-to-br from-slate-100 to-slate-50 text-slate-700"
+                  }`}
+                >
                   <div className="flex items-center gap-2">
-                    <LoadingSpinner />
+                    <LoadingSpinner isDarkMode={isDarkMode} />
                     <span>Analyzing your question...</span>
                   </div>
                 </div>
@@ -327,7 +416,11 @@ function App() {
           {messages.length === 1 && !loading && (
             <div className="mx-auto w-full max-w-4xl">
               <div className="space-y-3">
-                <p className="text-center text-sm text-slate-400">
+                <p
+                  className={`text-center text-sm ${
+                    isDarkMode ? "text-slate-400" : "text-slate-600"
+                  }`}
+                >
                   Try asking about the Yelp dataset:
                 </p>
                 <div className="flex flex-wrap justify-center gap-2 md:gap-3">
@@ -335,7 +428,11 @@ function App() {
                     <button
                       key={query}
                       onClick={() => handleSuggestionClick(query)}
-                      className="rounded-full border border-slate-600/50 bg-slate-800/50 px-4 py-2 text-xs text-slate-300 transition hover:border-cyan-500/50 hover:bg-slate-700/50 hover:text-cyan-200 md:text-sm"
+                      className={`rounded-full border px-4 py-2 text-xs transition md:text-sm ${
+                        isDarkMode
+                          ? "border-slate-600/50 bg-slate-800/50 text-slate-300 hover:border-cyan-500/50 hover:bg-slate-700/50 hover:text-cyan-200"
+                          : "border-slate-300/50 bg-slate-200/50 text-slate-700 hover:border-cyan-400/50 hover:bg-slate-100 hover:text-cyan-700"
+                      }`}
                     >
                       {query}
                     </button>
@@ -351,14 +448,24 @@ function App() {
             className="mx-auto mt-8 w-full max-w-4xl"
           >
             <div className="flex flex-col gap-3">
-              <div className="flex gap-2 rounded-xl border border-slate-600/50 bg-slate-800/50 p-1 shadow-lg shadow-slate-950/50 backdrop-blur-sm transition focus-within:border-cyan-500/50">
+              <div
+                className={`flex gap-2 rounded-xl border p-1 shadow-lg backdrop-blur-sm transition focus-within:border-cyan-500/50 ${
+                  isDarkMode
+                    ? "border-slate-600/50 bg-slate-800/50 shadow-slate-950/50"
+                    : "border-slate-300/50 bg-slate-100/50 shadow-slate-300/20"
+                }`}
+              >
                 <input
                   type="text"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   placeholder="Ask me about restaurants, reviews, cities, or users..."
                   disabled={loading}
-                  className="flex-1 bg-transparent px-4 py-3 text-slate-100 outline-none placeholder:text-slate-500 disabled:opacity-50"
+                  className={`flex-1 bg-transparent px-4 py-3 outline-none placeholder:text-slate-500 disabled:opacity-50 ${
+                    isDarkMode
+                      ? "text-slate-100"
+                      : "text-slate-900"
+                  }`}
                 />
                 <button
                   type="submit"
@@ -375,13 +482,69 @@ function App() {
                   )}
                 </button>
               </div>
-              <p className="text-center text-xs text-slate-400">
+              <p
+                className={`text-center text-xs ${
+                  isDarkMode ? "text-slate-400" : "text-slate-600"
+                }`}
+              >
                 Powered by AI-powered SQL generation and Yelp data
               </p>
             </div>
           </form>
         </main>
       </div>
+    </div>
+  );
+}
+
+function App() {
+  const [isDarkMode, setIsDarkMode] = useState(true);
+  const [currentPage, setCurrentPage] = useState("chatbot");
+
+  const toggleTheme = () => {
+    setIsDarkMode(!isDarkMode);
+  };
+
+  // Apply theme to document root
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }, [isDarkMode]);
+
+  // Render different pages based on currentPage state
+  const renderPage = () => {
+    switch (currentPage) {
+      case "home":
+        return <HomePage isDarkMode={isDarkMode} setCurrentPage={setCurrentPage} />;
+      case "dashboard":
+        return <DashboardPage isDarkMode={isDarkMode} />;
+      case "chatbot":
+        return <ChatbotContent isDarkMode={isDarkMode} />;
+      case "about":
+        return <AboutPage isDarkMode={isDarkMode} />;
+      default:
+        return <ChatbotContent isDarkMode={isDarkMode} />;
+    }
+  };
+
+  return (
+    <div
+      className={`min-h-screen transition-colors ${
+        isDarkMode
+          ? "bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900"
+          : "bg-gradient-to-b from-slate-50 via-slate-100 to-slate-50"
+      }`}
+    >
+      <Navbar
+        isDarkMode={isDarkMode}
+        toggleTheme={toggleTheme}
+        currentPage={currentPage}
+        setCurrentPage={setCurrentPage}
+      />
+      {renderPage()}
     </div>
   );
 }
