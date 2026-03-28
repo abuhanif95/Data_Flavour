@@ -107,6 +107,8 @@ export default function AboutSection() {
                       <span className="text-sm">{icon}</span>
                     </a >
                   ))}        
+
+                  
                 </div>
 
                 {/* View Details button */}
