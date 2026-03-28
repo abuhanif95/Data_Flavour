@@ -25,6 +25,7 @@ function DashboardPage({ isDarkMode }) {
   const [selectedAnalysisName, setSelectedAnalysisName] = useState(null);
   const [selectedQuestionIndex, setSelectedQuestionIndex] = useState(0);
   const [selectedChartType, setSelectedChartType] = useState("bar");
+  const [isChartModalOpen, setIsChartModalOpen] = useState(false);
   const [remoteChartData, setRemoteChartData] = useState([]);
   const [isChartLoading, setIsChartLoading] = useState(false);
   const [chartError, setChartError] = useState("");
@@ -246,9 +247,15 @@ function DashboardPage({ isDarkMode }) {
         setIsChartLoading(true);
         setChartError("");
 
+        const query = new URLSearchParams({
+          dataset: selectedDataset,
+          question: selectedQuestion,
+        });
         const response = await fetch(
-          `/api/analysis/chart?dataset=${encodeURIComponent(selectedDataset)}`,
-          { signal: controller.signal },
+          `/api/analysis/chart?${query.toString()}`,
+          {
+            signal: controller.signal,
+          },
         );
 
         if (!response.ok) {
@@ -278,11 +285,10 @@ function DashboardPage({ isDarkMode }) {
     fetchChartData();
 
     return () => controller.abort();
-  }, [selectedDataset, shouldFetchRemoteData]);
+  }, [selectedDataset, selectedQuestion, shouldFetchRemoteData]);
 
-  const chartData = remoteChartData.length
-    ? remoteChartData
-    : fallbackChartData;
+  const chartData = shouldFetchRemoteData ? remoteChartData : fallbackChartData;
+  const hasChartData = chartData.length > 0;
 
   const pieData = useMemo(
     () =>
@@ -292,6 +298,135 @@ function DashboardPage({ isDarkMode }) {
       })),
     [chartData],
   );
+
+  const chartStats = useMemo(() => {
+    const values = chartData
+      .map((item) => Number(item.value))
+      .filter((value) => Number.isFinite(value));
+
+    if (!values.length) {
+      return null;
+    }
+
+    const total = values.reduce((sum, value) => sum + value, 0);
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const avg = total / values.length;
+
+    return { total, min, max, avg, count: values.length };
+  }, [chartData]);
+
+  const topChartDetails = useMemo(
+    () => [...chartData].sort((a, b) => b.value - a.value).slice(0, 10),
+    [chartData],
+  );
+
+  useEffect(() => {
+    setIsChartModalOpen(false);
+  }, [selectedAnalysisName, selectedQuestionIndex, selectedChartType]);
+
+  function renderActiveChart() {
+    return (
+      <ResponsiveContainer width="100%" height="100%">
+        {selectedChartType === "bar" ? (
+          <BarChart data={chartData}>
+            <CartesianGrid
+              strokeDasharray="3 3"
+              stroke={isDarkMode ? "#334155" : "#cbd5e1"}
+            />
+            <XAxis
+              dataKey="label"
+              stroke={isDarkMode ? "#cbd5e1" : "#475569"}
+            />
+            <YAxis stroke={isDarkMode ? "#cbd5e1" : "#475569"} />
+            <Tooltip />
+            <Bar dataKey="value" fill="#3b82f6" radius={[6, 6, 0, 0]} />
+          </BarChart>
+        ) : selectedChartType === "line" ? (
+          <LineChart data={chartData}>
+            <CartesianGrid
+              strokeDasharray="3 3"
+              stroke={isDarkMode ? "#334155" : "#cbd5e1"}
+            />
+            <XAxis
+              dataKey="label"
+              stroke={isDarkMode ? "#cbd5e1" : "#475569"}
+            />
+            <YAxis stroke={isDarkMode ? "#cbd5e1" : "#475569"} />
+            <Tooltip />
+            <Line
+              type="monotone"
+              dataKey="value"
+              stroke="#06b6d4"
+              strokeWidth={3}
+              dot={false}
+            />
+          </LineChart>
+        ) : selectedChartType === "area" ? (
+          <AreaChart data={chartData}>
+            <CartesianGrid
+              strokeDasharray="3 3"
+              stroke={isDarkMode ? "#334155" : "#cbd5e1"}
+            />
+            <XAxis
+              dataKey="label"
+              stroke={isDarkMode ? "#cbd5e1" : "#475569"}
+            />
+            <YAxis stroke={isDarkMode ? "#cbd5e1" : "#475569"} />
+            <Tooltip />
+            <Area
+              type="monotone"
+              dataKey="value"
+              stroke="#2563eb"
+              fill="#60a5fa"
+              fillOpacity={0.5}
+            />
+          </AreaChart>
+        ) : selectedChartType === "pie" ? (
+          <PieChart>
+            <Tooltip />
+            <Legend />
+            <Pie
+              data={pieData}
+              dataKey="value"
+              nameKey="name"
+              cx="50%"
+              cy="50%"
+              outerRadius={130}
+              label
+            >
+              {pieData.map((entry, idx) => (
+                <Cell
+                  key={entry.name}
+                  fill={pieColors[idx % pieColors.length]}
+                />
+              ))}
+            </Pie>
+          </PieChart>
+        ) : (
+          <ScatterChart>
+            <CartesianGrid
+              strokeDasharray="3 3"
+              stroke={isDarkMode ? "#334155" : "#cbd5e1"}
+            />
+            <XAxis
+              dataKey="value"
+              name="Value"
+              stroke={isDarkMode ? "#cbd5e1" : "#475569"}
+            />
+            <YAxis
+              dataKey="secondary"
+              name="Secondary"
+              stroke={isDarkMode ? "#cbd5e1" : "#475569"}
+            />
+            <ZAxis dataKey="z" range={[40, 260]} />
+            <Tooltip cursor={{ strokeDasharray: "3 3" }} />
+            <Scatter data={chartData} fill="#8b5cf6" />
+          </ScatterChart>
+        )}
+      </ResponsiveContainer>
+    );
+  }
 
   const ServiceCard = ({ service, type }) => (
     <div
@@ -511,7 +646,7 @@ function DashboardPage({ isDarkMode }) {
                                     : "bg-amber-100 text-amber-700"
                                 }`}
                               >
-                                {`${chartError} (showing fallback preview data)`}
+                                {chartError}
                               </span>
                             )}
                           </div>
@@ -542,117 +677,59 @@ function DashboardPage({ isDarkMode }) {
                               isDarkMode ? "bg-slate-800/90" : "bg-slate-50"
                             }`}
                           >
-                            <ResponsiveContainer width="100%" height="100%">
-                              {selectedChartType === "bar" ? (
-                                <BarChart data={chartData}>
-                                  <CartesianGrid
-                                    strokeDasharray="3 3"
-                                    stroke={isDarkMode ? "#334155" : "#cbd5e1"}
-                                  />
-                                  <XAxis
-                                    dataKey="label"
-                                    stroke={isDarkMode ? "#cbd5e1" : "#475569"}
-                                  />
-                                  <YAxis
-                                    stroke={isDarkMode ? "#cbd5e1" : "#475569"}
-                                  />
-                                  <Tooltip />
-                                  <Bar
-                                    dataKey="value"
-                                    fill="#3b82f6"
-                                    radius={[6, 6, 0, 0]}
-                                  />
-                                </BarChart>
-                              ) : selectedChartType === "line" ? (
-                                <LineChart data={chartData}>
-                                  <CartesianGrid
-                                    strokeDasharray="3 3"
-                                    stroke={isDarkMode ? "#334155" : "#cbd5e1"}
-                                  />
-                                  <XAxis
-                                    dataKey="label"
-                                    stroke={isDarkMode ? "#cbd5e1" : "#475569"}
-                                  />
-                                  <YAxis
-                                    stroke={isDarkMode ? "#cbd5e1" : "#475569"}
-                                  />
-                                  <Tooltip />
-                                  <Line
-                                    type="monotone"
-                                    dataKey="value"
-                                    stroke="#06b6d4"
-                                    strokeWidth={3}
-                                    dot={false}
-                                  />
-                                </LineChart>
-                              ) : selectedChartType === "area" ? (
-                                <AreaChart data={chartData}>
-                                  <CartesianGrid
-                                    strokeDasharray="3 3"
-                                    stroke={isDarkMode ? "#334155" : "#cbd5e1"}
-                                  />
-                                  <XAxis
-                                    dataKey="label"
-                                    stroke={isDarkMode ? "#cbd5e1" : "#475569"}
-                                  />
-                                  <YAxis
-                                    stroke={isDarkMode ? "#cbd5e1" : "#475569"}
-                                  />
-                                  <Tooltip />
-                                  <Area
-                                    type="monotone"
-                                    dataKey="value"
-                                    stroke="#2563eb"
-                                    fill="#60a5fa"
-                                    fillOpacity={0.5}
-                                  />
-                                </AreaChart>
-                              ) : selectedChartType === "pie" ? (
-                                <PieChart>
-                                  <Tooltip />
-                                  <Legend />
-                                  <Pie
-                                    data={pieData}
-                                    dataKey="value"
-                                    nameKey="name"
-                                    cx="50%"
-                                    cy="50%"
-                                    outerRadius={130}
-                                    label
-                                  >
-                                    {pieData.map((entry, idx) => (
-                                      <Cell
-                                        key={entry.name}
-                                        fill={pieColors[idx % pieColors.length]}
-                                      />
-                                    ))}
-                                  </Pie>
-                                </PieChart>
-                              ) : (
-                                <ScatterChart>
-                                  <CartesianGrid
-                                    strokeDasharray="3 3"
-                                    stroke={isDarkMode ? "#334155" : "#cbd5e1"}
-                                  />
-                                  <XAxis
-                                    dataKey="value"
-                                    name="Value"
-                                    stroke={isDarkMode ? "#cbd5e1" : "#475569"}
-                                  />
-                                  <YAxis
-                                    dataKey="secondary"
-                                    name="Secondary"
-                                    stroke={isDarkMode ? "#cbd5e1" : "#475569"}
-                                  />
-                                  <ZAxis dataKey="z" range={[40, 260]} />
-                                  <Tooltip
-                                    cursor={{ strokeDasharray: "3 3" }}
-                                  />
-                                  <Scatter data={chartData} fill="#8b5cf6" />
-                                </ScatterChart>
-                              )}
-                            </ResponsiveContainer>
+                            {isChartLoading ? (
+                              <div className="flex h-full flex-col items-center justify-center gap-3">
+                                <div
+                                  className={`h-10 w-10 animate-spin rounded-full border-4 border-t-transparent ${
+                                    isDarkMode
+                                      ? "border-cyan-400"
+                                      : "border-cyan-600"
+                                  }`}
+                                />
+                                <p
+                                  className={`text-sm font-medium ${
+                                    isDarkMode
+                                      ? "text-cyan-300"
+                                      : "text-cyan-700"
+                                  }`}
+                                >
+                                  Data loading...
+                                </p>
+                              </div>
+                            ) : shouldFetchRemoteData &&
+                              !chartError &&
+                              !hasChartData ? (
+                              <div className="flex h-full items-center justify-center">
+                                <p
+                                  className={`text-sm font-medium ${
+                                    isDarkMode
+                                      ? "text-slate-300"
+                                      : "text-slate-600"
+                                  }`}
+                                >
+                                  No data returned from server.
+                                </p>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => setIsChartModalOpen(true)}
+                                className="h-full w-full cursor-zoom-in text-left"
+                                title="Open graph details"
+                              >
+                                {renderActiveChart()}
+                              </button>
+                            )}
                           </div>
+                          {!isChartLoading && hasChartData && (
+                            <p
+                              className={`mt-2 text-xs ${
+                                isDarkMode ? "text-slate-400" : "text-slate-500"
+                              }`}
+                            >
+                              Click graph to open modal view.
+                            </p>
+                          )}
                         </div>
                       )}
                     </div>
@@ -662,6 +739,122 @@ function DashboardPage({ isDarkMode }) {
             </div>
           </div>
         </div>
+
+        {isChartModalOpen && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+            onClick={() => setIsChartModalOpen(false)}
+          >
+            <div
+              className={`w-full max-w-7xl rounded-xl border p-4 shadow-2xl ${
+                isDarkMode
+                  ? "border-slate-700 bg-slate-950"
+                  : "border-slate-200 bg-white"
+              }`}
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="mb-4 flex items-start justify-between gap-4">
+                <div>
+                  <h3
+                    className={`text-xl font-bold ${
+                      isDarkMode ? "text-white" : "text-slate-900"
+                    }`}
+                  >
+                    Graph Details
+                  </h3>
+                  <p
+                    className={`text-sm ${
+                      isDarkMode ? "text-slate-300" : "text-slate-600"
+                    }`}
+                  >
+                    {selectedQuestion}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsChartModalOpen(false)}
+                  className={`rounded-md px-3 py-1 text-sm font-semibold ${
+                    isDarkMode
+                      ? "bg-slate-800 text-slate-100 hover:bg-slate-700"
+                      : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                  }`}
+                >
+                  Close
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
+                <div
+                  className={`h-[70vh] rounded-lg p-3 lg:col-span-3 ${
+                    isDarkMode ? "bg-slate-900" : "bg-slate-50"
+                  }`}
+                >
+                  {renderActiveChart()}
+                </div>
+
+                <div
+                  className={`h-[70vh] overflow-y-auto rounded-lg border p-4 lg:col-span-2 ${
+                    isDarkMode
+                      ? "border-slate-700 bg-slate-900 text-slate-100"
+                      : "border-slate-200 bg-slate-50 text-slate-800"
+                  }`}
+                >
+                  <div className="space-y-2 text-sm">
+                    <p>
+                      <span className="font-semibold">Dataset:</span>{" "}
+                      {selectedDataset}
+                    </p>
+                    <p>
+                      <span className="font-semibold">Chart Type:</span>{" "}
+                      {selectedChartType}
+                    </p>
+                    <p>
+                      <span className="font-semibold">Data Points:</span>{" "}
+                      {chartStats?.count || 0}
+                    </p>
+                    <p>
+                      <span className="font-semibold">Total Value:</span>{" "}
+                      {chartStats
+                        ? Math.round(chartStats.total).toLocaleString()
+                        : 0}
+                    </p>
+                    <p>
+                      <span className="font-semibold">Average Value:</span>{" "}
+                      {chartStats ? chartStats.avg.toFixed(2) : "0.00"}
+                    </p>
+                    <p>
+                      <span className="font-semibold">Min / Max:</span>{" "}
+                      {chartStats
+                        ? `${chartStats.min.toLocaleString()} / ${chartStats.max.toLocaleString()}`
+                        : "0 / 0"}
+                    </p>
+                  </div>
+
+                  <div className="mt-5">
+                    <h4 className="mb-2 text-sm font-semibold">
+                      Top Data Rows
+                    </h4>
+                    <div className="space-y-2">
+                      {topChartDetails.map((item, idx) => (
+                        <div
+                          key={`${item.label}-${idx}`}
+                          className={`rounded-md border p-2 text-xs ${
+                            isDarkMode
+                              ? "border-slate-700 bg-slate-800"
+                              : "border-slate-200 bg-white"
+                          }`}
+                        >
+                          <p className="font-semibold">{item.label}</p>
+                          <p>Value: {Number(item.value).toLocaleString()}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
