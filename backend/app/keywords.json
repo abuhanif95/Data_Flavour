@@ -1,0 +1,74 @@
+{
+  "profiles": [
+    {
+      "name": "business-city",
+      "terms": [
+        "city",
+        "cities",
+        "merchant",
+        "merchants",
+        "business",
+        "businesses"
+      ],
+      "dataset": "business",
+      "fields": ["name", "city", "state", "stars", "review_count"],
+      "explanation": "City-level merchant performance and distribution."
+    },
+    {
+      "name": "business-category",
+      "terms": [
+        "category",
+        "categories",
+        "cuisine",
+        "restaurant",
+        "restaurants"
+      ],
+      "dataset": "business",
+      "fields": ["name", "categories", "city", "stars", "review_count"],
+      "explanation": "Category frequency and category quality insights."
+    },
+    {
+      "name": "user-reviewers",
+      "terms": ["reviewer", "reviewers", "user", "users", "fans", "elite"],
+      "dataset": "user",
+      "fields": [
+        "name",
+        "review_count",
+        "fans",
+        "average_stars",
+        "yelping_since"
+      ],
+      "explanation": "User engagement and reviewer ranking insights."
+    },
+    {
+      "name": "review-sentiment",
+      "terms": [
+        "review",
+        "reviews",
+        "sentiment",
+        "useful",
+        "funny",
+        "cool",
+        "negative",
+        "positive"
+      ],
+      "dataset": "review",
+      "fields": ["stars", "date", "useful", "funny", "cool", "text"],
+      "explanation": "Review trend and sentiment behavior insights."
+    },
+    {
+      "name": "checkin-pattern",
+      "terms": ["checkin", "check-in", "checkins", "hour", "peak", "busiest"],
+      "dataset": "checkin",
+      "fields": ["business_id", "date"],
+      "explanation": "Check-in traffic pattern by hour and season."
+    },
+    {
+      "name": "rating-distribution",
+      "terms": ["rating", "ratings", "star", "stars", "distribution"],
+      "dataset": "rating",
+      "fields": ["stars", "date", "text"],
+      "explanation": "Star distribution and quality spread insights."
+    }
+  ]
+}

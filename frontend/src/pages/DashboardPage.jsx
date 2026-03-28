@@ -202,8 +202,7 @@ function DashboardPage({ isDarkMode }) {
   const selectedDataset = activeModule
     ? moduleDatasetMap[activeModule.name] || "comprehensive"
     : "comprehensive";
-  const shouldFetchRemoteData =
-    selectedModule === "dataAnalysis" && Boolean(selectedQuestion);
+  const shouldFetchRemoteData = Boolean(selectedQuestion);
 
   const fallbackChartData = useMemo(() => {
     const seed =
@@ -250,6 +249,7 @@ function DashboardPage({ isDarkMode }) {
         const query = new URLSearchParams({
           dataset: selectedDataset,
           question: selectedQuestion,
+          section: selectedModule || "dataAnalysis",
         });
         const response = await fetch(
           `/api/analysis/chart?${query.toString()}`,

@@ -305,7 +305,7 @@ function ChatbotContent({ isDarkMode }) {
               : "bg-gradient-to-b from-slate-100 via-slate-50 to-slate-50"
           }`}
         >
-          <div className="mx-auto w-full max-w-4xl flex-1 space-y-4">
+          <div className="mx-auto w-full max-w-4xl flex-1 space-y-4 pb-36">
             {messages.map((message, index) => (
               <article
                 key={`${message.role}-${index}`}
@@ -446,7 +446,7 @@ function ChatbotContent({ isDarkMode }) {
           {/* Input Form */}
           <form
             onSubmit={askQuestion}
-            className="mx-auto mt-8 w-full max-w-4xl"
+            className="fixed bottom-4 left-1/2 z-30 w-[calc(100%-2rem)] max-w-4xl -translate-x-1/2"
           >
             <div className="flex flex-col gap-3">
               <div
@@ -460,7 +460,7 @@ function ChatbotContent({ isDarkMode }) {
                   type="text"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder="Ask me about restaurants, reviews, cities, or users..."
+                  placeholder="How can i help you?"
                   disabled={loading}
                   className={`flex-1 bg-transparent px-4 py-3 outline-none placeholder:text-slate-500 disabled:opacity-50 ${
                     isDarkMode ? "text-slate-100" : "text-slate-900"
