@@ -274,29 +274,6 @@ function ChatbotContent({ isDarkMode }) {
       }`}
     >
       <div className="mx-auto flex min-h-screen w-full max-w-[1400px] flex-col">
-        {/* Hero Section */}
-        <section
-          className={`border-b transition-colors ${
-            isDarkMode
-              ? "border-white/10 bg-gradient-to-b from-black to-slate-950"
-              : "border-slate-200 bg-gradient-to-b from-slate-100 to-slate-50"
-          } px-4 py-8 md:px-8`}
-        >
-          <div className="space-y-2">
-            <h2
-              className={`text-3xl font-bold md:text-4xl ${
-                isDarkMode ? "text-white" : "text-slate-900"
-              }`}
-            >
-              Query Yelp with Natural Language
-            </h2>
-            <p className={isDarkMode ? "text-slate-300" : "text-slate-700"}>
-              Ask anything about restaurants, reviews, users, and check-ins.
-              Watch as AI converts your question to SQL instantly.
-            </p>
-          </div>
-        </section>
-
         {/* Main Chat Area */}
         <main
           className={`flex flex-1 flex-col px-4 py-6 md:px-8 transition-colors ${
@@ -412,36 +389,6 @@ function ChatbotContent({ isDarkMode }) {
 
             <div ref={messagesEndRef} />
           </div>
-
-          {/* Sample Queries */}
-          {messages.length === 1 && !loading && (
-            <div className="mx-auto w-full max-w-4xl">
-              <div className="space-y-3">
-                <p
-                  className={`text-center text-sm ${
-                    isDarkMode ? "text-slate-400" : "text-slate-600"
-                  }`}
-                >
-                  Try asking about the Yelp dataset:
-                </p>
-                <div className="flex flex-wrap justify-center gap-2 md:gap-3">
-                  {SAMPLE_QUERIES.map((query) => (
-                    <button
-                      key={query}
-                      onClick={() => handleSuggestionClick(query)}
-                      className={`rounded-full border px-4 py-2 text-xs transition md:text-sm ${
-                        isDarkMode
-                          ? "border-slate-600/50 bg-slate-800/50 text-slate-300 hover:border-cyan-500/50 hover:bg-slate-700/50 hover:text-cyan-200"
-                          : "border-slate-300/50 bg-slate-200/50 text-slate-700 hover:border-cyan-400/50 hover:bg-slate-100 hover:text-cyan-700"
-                      }`}
-                    >
-                      {query}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* Input Form */}
           <form
